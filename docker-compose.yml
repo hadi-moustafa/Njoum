@@ -1,0 +1,26 @@
+version: '3.9'
+
+# Local development services for Njoum
+#
+# NOTE: The database is hosted on Supabase — NOT here.
+# This file only starts services that run locally.
+#
+# Run: docker compose up -d
+
+services:
+  # ── Redis (rate limiting, queues, SOS pub/sub) ─────────────
+  redis:
+    image: redis:7-alpine
+    container_name: njoum_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:

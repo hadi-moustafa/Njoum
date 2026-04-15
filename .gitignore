@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.expo/
+
+# Environment — NEVER commit real values
+.env
+.env.local
+.env.*.local
+
+# Supabase local
+.supabase/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Type checks
+*.tsbuildinfo
+
+# Firebase service account (keep out of git)
+*-service-account.json
+google-services.json
+GoogleService-Info.plist
+
+# Certificates / secrets
+*.pem
+*.p12
+*.key
