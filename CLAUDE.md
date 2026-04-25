@@ -667,13 +667,172 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 | 2026-04-15 | API bootstrap — Express server, middleware stack, response helpers | `packages/api/src/index.ts`, `packages/api/src/middleware/` |
 | 2026-04-15 | Shared types & constants | `packages/shared/src/types.ts`, `packages/shared/src/constants.ts` |
 | 2026-04-15 | Architecture clarification — Supabase Auth + Google Sign-In only, no local DB, no MongoDB, web app is admin-only | `CLAUDE.md`, `docker-compose.yml`, `.env.example`, `packages/api/src/middleware/auth.ts`, `packages/api/package.json` |
+| 2026-04-15 | Phase 1 complete — all API routes & controllers | See table below |
+| 2026-04-22 | Phase 2 complete — full React Native / Expo mobile app | See table below |
+
+#### Phase 1 file inventory
+
+| Step | Files |
+|---|---|
+| 1.1 Role sync | `supabase/migrations/20260415000002_role_sync_trigger.sql`, `packages/api/src/services/authAdmin.ts` |
+| 1.2 Users | `packages/api/src/controllers/users.ts`, `packages/api/src/routes/users.ts` |
+| 1.3 SOS | `packages/api/src/controllers/sos.ts`, `packages/api/src/routes/sos.ts`, `packages/api/src/services/twilio.ts`, `packages/api/src/services/fcm.ts` |
+| 1.4 Hotlines | `packages/api/src/controllers/hotlines.ts`, `packages/api/src/routes/hotlines.ts` |
+| 1.5 Mood + Journal | `packages/api/src/controllers/mood.ts`, `packages/api/src/controllers/journal.ts`, `packages/api/src/routes/mood.ts`, `packages/api/src/routes/journal.ts` |
+| 1.6 Cycles | `packages/api/src/controllers/cycles.ts`, `packages/api/src/routes/cycles.ts` |
+| 1.7 Community | `packages/api/src/controllers/community.ts`, `packages/api/src/routes/community.ts` |
+| 1.8 Content | `packages/api/src/controllers/content.ts`, `packages/api/src/routes/content.ts` |
+| 1.9 Scouts | `packages/api/src/controllers/scouts.ts`, `packages/api/src/routes/scouts.ts` |
+| 1.10 Legal | `packages/api/src/controllers/legal.ts`, `packages/api/src/routes/legal.ts` |
+| 1.11 Admin | `packages/api/src/controllers/admin.ts`, `packages/api/src/routes/admin.ts` |
+| Wiring | `packages/api/src/index.ts` (all routes mounted) |
+
+#### Phase 2 file inventory
+
+| Step | Files |
+|---|---|
+| 2.1 Expo shell | `apps/mobile/package.json`, `apps/mobile/app.json`, `apps/mobile/tsconfig.json`, `apps/mobile/babel.config.js` |
+| 2.1 Services | `apps/mobile/services/supabase.ts`, `apps/mobile/services/api.ts` |
+| 2.1 Constants | `apps/mobile/constants/theme.ts` |
+| 2.1 State | `apps/mobile/store/authStore.ts` |
+| 2.1 Hooks | `apps/mobile/hooks/useColorScheme.ts`, `apps/mobile/hooks/useRTL.ts` |
+| 2.1 Root layout | `apps/mobile/app/_layout.tsx` (AuthGuard, RTL, QueryClient) |
+| 2.1 Shared UI | `apps/mobile/components/ui/Card.tsx`, `Button.tsx`, `ScreenHeader.tsx` |
+| 2.1 SOS component | `apps/mobile/components/SOSButton.tsx` (pulse anim, 10s grace, cancel) |
+| 2.2 Auth | `apps/mobile/app/(auth)/_layout.tsx`, `apps/mobile/app/(auth)/sign-in.tsx` |
+| 2.2 404 | `apps/mobile/app/+not-found.tsx` |
+| 2.3 Tabs shell | `apps/mobile/app/(tabs)/_layout.tsx` (5 tabs + SOS overlay) |
+| 2.3 Home | `apps/mobile/app/(tabs)/index.tsx` (affirmation, mood picker, quick-access grid) |
+| 2.4 Safety | `apps/mobile/app/(tabs)/safety/_layout.tsx`, `safety/index.tsx` |
+| 2.4 Hotlines | `apps/mobile/app/(tabs)/safety/hotlines.tsx` |
+| 2.4 Contacts | `apps/mobile/app/(tabs)/safety/contacts.tsx` |
+| 2.4 Journey | `apps/mobile/app/(tabs)/safety/journey.tsx` |
+| 2.4 Self-Defence | `apps/mobile/app/(tabs)/safety/selfdefence.tsx` |
+| 2.4 Legal | `apps/mobile/app/(tabs)/safety/legal.tsx` |
+| 2.4 Scouts | `apps/mobile/app/(tabs)/safety/scouts.tsx` |
+| 2.4 Learn | `apps/mobile/app/(tabs)/safety/learn.tsx` |
+| 2.7 Wellness | `apps/mobile/app/(tabs)/wellness/_layout.tsx`, `wellness/index.tsx` |
+| 2.7 Mood | `apps/mobile/app/(tabs)/wellness/mood.tsx` (daily check-in, 14-day history, streak) |
+| 2.7 Journal | `apps/mobile/app/(tabs)/wellness/journal.tsx` (list / compose / read; encrypted server-side) |
+| 2.7 Cycle | `apps/mobile/app/(tabs)/wellness/cycle.tsx` (log + prediction card + symptom chips) |
+| 2.8 Community | `apps/mobile/app/(tabs)/community/_layout.tsx`, `community/index.tsx` (groups list) |
+| 2.8 Feed | `apps/mobile/app/(tabs)/community/feed.tsx` (posts, reactions, anonymous post toggle) |
+| 2.10 Profile | `apps/mobile/app/(tabs)/profile.tsx` (avatar, role badge, notif prefs, sign-out) |
 
 ### In Progress / Next
 
-- Auth middleware rewrite → verify Supabase JWTs (not custom JWTs)
-- User profile routes (`/api/v1/users/me`)
-- Web admin app scaffold (Next.js, all routes admin-gated via Supabase Auth)
-- SOS system routes + Twilio + FCM integration
+- Phase 3 complete — Web admin dashboard (Next.js 14, admin-only)
+
+#### Phase 3 file inventory
+
+| Step | Files |
+|---|---|
+| 3.1 Project config | `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/next.config.ts`, `apps/web/tailwind.config.ts`, `apps/web/postcss.config.js` |
+| 3.1 Supabase SSR clients | `apps/web/lib/supabase/server.ts`, `apps/web/lib/supabase/client.ts` |
+| 3.1 API helper | `apps/web/lib/api.ts` (server-side fetch with Bearer token) |
+| 3.1 Admin auth guard | `apps/web/lib/auth.ts` (`requireAdmin()` — redirects if not admin), `apps/web/middleware.ts` (edge-level JWT + role check) |
+| 3.1 Root layout + CSS | `apps/web/app/layout.tsx`, `apps/web/app/globals.css` (RTL, Tailwind, brand colors) |
+| 3.1 Login page | `apps/web/app/login/page.tsx` (Google OAuth via Supabase) |
+| 3.1 OAuth callback | `apps/web/app/auth/callback/route.ts` (code exchange, role gate) |
+| 3.1 Root redirect | `apps/web/app/page.tsx` (→ /dashboard) |
+| 3.1 Sidebar | `apps/web/components/Sidebar.tsx` (nav links, sign-out) |
+| 3.1 Dashboard layout | `apps/web/app/dashboard/layout.tsx` (wraps all admin pages) |
+| 3.2 Dashboard home | `apps/web/app/dashboard/page.tsx` (4 stat cards + recent SOS table) |
+| 3.2 Users page | `apps/web/app/dashboard/users/page.tsx` (list + role filter) |
+| 3.2 User actions | `apps/web/app/dashboard/users/UserActions.tsx` (client: ban/unban, role change) |
+| 3.3 Content page | `apps/web/app/dashboard/content/page.tsx` (tabs: articles, quizzes, videos) |
+| 3.3 Hotlines page | `apps/web/app/dashboard/hotlines/page.tsx` (list table) |
+| 3.3 Hotline form | `apps/web/app/dashboard/hotlines/HotlineForm.tsx` (client add-form) |
+| 3.4 Moderation page | `apps/web/app/dashboard/moderation/page.tsx` (reports queue by status) |
+| 3.4 Resolve button | `apps/web/app/dashboard/moderation/ResolveButton.tsx` (client: resolve / dismiss) |
+| 3.5 Scouts admin | `apps/web/app/dashboard/scouts/page.tsx` (tabs: troops, activities, badges) |
+| 3.6 Analytics | `apps/web/app/dashboard/analytics/page.tsx` (mood trend, module engagement, SOS monthly) |
+| 3.6 Mood chart | `apps/web/app/dashboard/analytics/MoodChart.tsx` (Recharts line chart, client component) |
+| API additions | `packages/api/src/controllers/admin.ts` (getStats, getRecentSos, getMoodAnalytics, getSosAnalytics, getModuleAnalytics) |
+| API route additions | `packages/api/src/routes/admin.ts` (GET /admin/stats, /admin/sos/recent, /admin/analytics/*) |
+
+#### Phase 4 file inventory
+
+| Step | Files |
+|---|---|
+| 4.1 Test infrastructure | `packages/api/jest.config.ts`, `packages/api/src/tests/setup.ts` |
+| 4.1 Encryption tests | `packages/api/src/services/encryption.test.ts` (8 cases) |
+| 4.1 Cycle predictor tests | `packages/api/src/services/cyclePredictor.test.ts` (8 cases) |
+| 4.1 Auth middleware tests | `packages/api/src/middleware/auth.test.ts` (9 cases) |
+| 4.1 Error handler tests | `packages/api/src/middleware/errorHandler.test.ts` (5 cases) |
+| 4.1 Response helper tests | `packages/api/src/services/response.test.ts` (7 cases) |
+| 4.1 Hotlines controller tests | `packages/api/src/controllers/hotlines.test.ts` (supertest, mocked Supabase) |
+| 4.2 CI pipeline | `.github/workflows/ci.yml` (lint → typecheck → test for API, web, mobile) |
+| 4.2 Deploy pipeline | `.github/workflows/deploy.yml` (Railway API, Vercel web, Supabase migrations) |
+| 4.3 OpenAPI 3.0 spec | `packages/api/src/openapi.ts` (paths, schemas, security) |
+| 4.3 Swagger UI endpoint | `packages/api/src/index.ts` → `GET /api/docs`, `GET /api/docs/openapi.json` |
+| 4.4 Sentry API integration | `packages/api/src/index.ts` (Sentry.init + setupExpressErrorHandler), `packages/api/package.json` (@sentry/node dep) |
+| 4.4 Env docs | `.env.example` (NEXT_PUBLIC_ web vars, GitHub Actions secrets doc) |
+
+#### Phase 5 file inventory
+
+| Step | Files |
+|---|---|
+| 5.1 Push notifications | `apps/mobile/services/notifications.ts` (register, sync token, deep-link router, listener setup) |
+| 5.1 Root layout update | `apps/mobile/app/_layout.tsx` (notification listeners wired on auth, token synced on login) |
+| 5.2 Sentry mobile | `apps/mobile/services/sentry.ts` (init, identifyUser, clearUser, captureError) |
+| 5.2 Mobile package | `apps/mobile/package.json` (@sentry/react-native, expo-device added) |
+| 5.3 Article editor | `apps/web/app/dashboard/content/ArticleEditor.tsx` (TipTap rich-text, draft/publish, module+language pickers) |
+| 5.3 New content page | `apps/web/app/dashboard/content/new/page.tsx` |
+| 5.3 Admin articles API | `packages/api/src/controllers/articles.ts` (create, update, soft-delete) |
+| 5.3 Admin routes update | `packages/api/src/routes/admin.ts` (POST/PATCH/DELETE /admin/articles) |
+| 5.3 Web package | `apps/web/package.json` (@tiptap/react, @tiptap/starter-kit, @tailwindcss/typography) |
+| 5.4 Badge certificates | `packages/api/src/services/badgeCertificate.ts` (pdfkit, A4 landscape, branded certificate) |
+| 5.4 Certificate route | `packages/api/src/routes/certificates.ts` (GET /badges/:id/certificate → PDF stream) |
+| 5.4 API wiring | `packages/api/src/index.ts` (certificateRoutes mounted) |
+| 5.4 API package | `packages/api/package.json` (pdfkit + @types/pdfkit added) |
+| 5.5 AI moderation | `packages/api/src/services/moderation.ts` (OpenAI Moderation API, timeout 5s, fails open) |
+| 5.5 Community controller | `packages/api/src/controllers/community.ts` (moderateContent called on createPost; auto-hide high-severity) |
+| 5.5 Env update | `.env.example` (OPENAI_API_KEY documented) |
+
+#### Web runnable fixes (2026-04-24)
+
+| Fix | Files |
+|---|---|
+| Convert `next.config.ts` → `next.config.mjs` (Next.js 14 doesn't support `.ts` config) | `apps/web/next.config.mjs` (old `.ts` deleted) |
+| Add `CookieOptions` types to Supabase SSR cookie helpers (TS strict mode) | `apps/web/lib/supabase/server.ts`, `apps/web/middleware.ts` |
+| Move `createClient()` inside handler to avoid crash when env vars are empty | `apps/web/app/login/page.tsx` |
+| Add `apps/web/.env.local` template with required env var stubs | `apps/web/.env.local` |
+
+#### Phase 6 — Dashboard direct-Supabase wiring + seed data (2026-04-24)
+
+All dashboard pages now bypass the Express API and query Supabase directly (service role client). Server Actions handle all mutations with `revalidatePath` for cache invalidation.
+
+| Step | Files |
+|---|---|
+| 6.1 Admin Supabase client | `apps/web/lib/supabase/admin.ts` (service role, bypasses RLS, server-only) |
+| 6.1 User server actions | `apps/web/app/actions/users.ts` (changeRole, banUser, unbanUser) |
+| 6.1 Hotline server actions | `apps/web/app/actions/hotlines.ts` (createHotline, toggleHotline, deleteHotline) |
+| 6.1 Content server actions | `apps/web/app/actions/content.ts` (createArticle, togglePublish, deleteArticle) |
+| 6.1 Moderation server actions | `apps/web/app/actions/moderation.ts` (resolveReport, dismissReport, removePost) |
+| 6.2 Seed data | `supabase/seed.sql` (comprehensive rewrite: 15 users, 20 hotlines, 12 articles, 12 SOS events, 30-day mood logs, 8 badges, 2 troops, 8 activities, 7 content reports, audit logs) |
+| 6.3 Dashboard home | `apps/web/app/dashboard/page.tsx` (direct Supabase stats, recent SOS with pulse animation) |
+| 6.3 Users page | `apps/web/app/dashboard/users/page.tsx` (search + role filter, avatar initials, ban state from deleted_at) |
+| 6.3 UserActions | `apps/web/app/dashboard/users/UserActions.tsx` (role dropdown + ban/unban via server actions) |
+| 6.3 Hotlines page | `apps/web/app/dashboard/hotlines/page.tsx` (country tabs, category badges, is_24h chip) |
+| 6.3 HotlineForm | `apps/web/app/dashboard/hotlines/HotlineForm.tsx` (add hotline form calling server action) |
+| 6.3 HotlineToggle | `apps/web/app/dashboard/hotlines/HotlineToggle.tsx` (activate/deactivate toggle) |
+| 6.3 Content page | `apps/web/app/dashboard/content/page.tsx` (tabs: articles/quizzes/videos, publish chips) |
+| 6.3 ContentActions | `apps/web/app/dashboard/content/ContentActions.tsx` (publish toggle + soft delete) |
+| 6.3 Moderation page | `apps/web/app/dashboard/moderation/page.tsx` (status tabs with counts, report cards) |
+| 6.3 ResolveButton | `apps/web/app/dashboard/moderation/ResolveButton.tsx` (resolve / remove post / dismiss) |
+| 6.3 Scouts page | `apps/web/app/dashboard/scouts/page.tsx` (troops/activities/badges tabs, member counts) |
+| 6.3 Analytics page | `apps/web/app/dashboard/analytics/page.tsx` (mood trend, module engagement bars, SOS monthly table — all direct Supabase, JS aggregation) |
+| 6.4 Root layout | `apps/web/app/layout.tsx` (added `<Toaster />` from sonner for toast notifications) |
+| 6.4 Env | `apps/web/.env.local` (SUPABASE_SERVICE_ROLE_KEY placeholder added with instructions) |
+
+### Open / Future Work
+
+- Parental consent UX for users under 13 (COPPA / GDPR-K)
+- Quiz editor in web admin (multi-step form: questions + options + correct index)
+- Offline sync: MMKV persistence layer for React Query cache (hotlines, activities)
+- Live location WebSocket during SOS (Supabase Realtime channel `sos:{event_id}`)
+- Localisation: dynamic RTL toggle based on user profile language
 
 ---
 
