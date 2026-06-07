@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { I18nManager } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -61,11 +62,24 @@ function AuthGuard() {
       if (s) loadProfile();
     });
 
+    // OAuth callback deep-link handler (Android: Chrome dispatches exp:// as intent)
+    const handleOAuthUrl = async ({ url }: { url: string }) => {
+      const params = new URLSearchParams(url.split('?')[1] ?? '');
+      const code = params.get('code');
+      if (code) {
+        console.log('[OAuth] deep-link callback received, exchanging code…');
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) console.error('[OAuth] exchange error:', error.message);
+      }
+    };
+    const linkSub = Linking.addEventListener('url', handleOAuthUrl);
+
     // Deep-link listener for notification taps
     const removeListeners = setupNotificationListeners(router);
 
     return () => {
       subscription.unsubscribe();
+      linkSub.remove();
       removeListeners();
     };
   }, []);

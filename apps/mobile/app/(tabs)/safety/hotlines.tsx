@@ -63,18 +63,17 @@ export default function HotlinesScreen() {
                 <View style={styles.hotlineRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.name, { color: colors.text }]}>{h.name}</Text>
-                    {h.description ? (
-                      <Text style={[styles.desc, { color: colors.textMuted }]}>{h.description}</Text>
+                    {h.region ? (
+                      <Text style={[styles.desc, { color: colors.textMuted }]}>{h.region}</Text>
                     ) : null}
-                    {h.is_24h && <Text style={styles.badge24}>٢٤/٧</Text>}
                   </View>
                   <Pressable
                     style={styles.callBtn}
-                    onPress={() => callNumber(h.number)}
+                    onPress={() => callNumber(h.phone)}
                     accessibilityLabel={`اتصال بـ ${h.name}`}
                   >
                     <Text style={styles.callEmoji}>📞</Text>
-                    <Text style={styles.callNum}>{h.number}</Text>
+                    <Text style={styles.callNum}>{h.phone}</Text>
                   </Pressable>
                 </View>
               </Card>

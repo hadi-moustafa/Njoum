@@ -17,10 +17,15 @@ export default function LoginPage({
   async function signInWithGoogle() {
     setLoading(true);
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider:  'google',
-      options:   { redirectTo: `${window.location.origin}/auth/callback` },
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    console.log('[Login] redirectTo:', redirectTo);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options:  { redirectTo },
     });
+    console.log('[Login] OAuth URL:', data?.url ?? 'none');
+    console.log('[Login] error:', error?.message ?? 'none');
+    if (error) setLoading(false);
   }
 
   return (
@@ -33,9 +38,9 @@ export default function LoginPage({
         <h1 className="text-2xl font-bold text-njoum-text mb-1">نجوم</h1>
         <p className="text-sm text-njoum-muted mb-8">لوحة التحكم — للمشرفين فقط</p>
 
-        {searchParams.error === 'unauthorized' && (
+        {(searchParams.error === 'unauthorized' || searchParams.error === 'not_admin') && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-6 text-sm">
-            ليس لديكِ صلاحية الوصول إلى لوحة التحكم.
+            ليس لديكِ صلاحية الوصول إلى لوحة التحكم. تواصلي مع المسؤولة لمنحكِ دور المشرف.
           </div>
         )}
 

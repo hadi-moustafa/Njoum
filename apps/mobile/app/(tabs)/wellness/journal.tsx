@@ -1,5 +1,6 @@
 // ============================================================
-// Journal — private encrypted entries list + compose
+// Journal — private encrypted entries
+// Actual schema: no title, no mood_score, no deleted_at.
 // ============================================================
 import { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
@@ -12,17 +13,17 @@ import { useColorScheme } from '../../../hooks/useColorScheme';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
-interface JournalEntry { id: string; title?: string; content?: string; created_at: string; updated_at: string }
+interface JournalEntry { id: string; created_at: string; updated_at: string }
+interface EntryDetail  { id: string; content: string; created_at: string }
 
-type View_ = 'list' | 'compose' | 'read';
+type ViewMode = 'list' | 'compose' | 'read';
 
 export default function JournalScreen() {
   const { colors } = useColorScheme();
   const qc         = useQueryClient();
 
-  const [view,    setView]    = useState<View_>('list');
-  const [reading, setReading] = useState<JournalEntry | null>(null);
-  const [title,   setTitle]   = useState('');
+  const [view,    setView]    = useState<ViewMode>('list');
+  const [reading, setReading] = useState<EntryDetail | null>(null);
   const [content, setContent] = useState('');
 
   const { data, isLoading } = useQuery({
@@ -33,10 +34,10 @@ export default function JournalScreen() {
   const entries = data?.data ?? [];
 
   const createMutation = useMutation({
-    mutationFn: () => api.post('/journal', { title: title || undefined, content }),
+    mutationFn: () => api.post('/journal', { content }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['journal'] });
-      setTitle(''); setContent(''); setView('list');
+      setContent(''); setView('list');
     },
     onError: () => Alert.alert('خطأ', 'تعذّر حفظ المذكرة.'),
   });
@@ -49,6 +50,15 @@ export default function JournalScreen() {
     },
     onError: () => Alert.alert('خطأ', 'تعذّر حذف المذكرة.'),
   });
+
+  async function openEntry(entry: JournalEntry) {
+    try {
+      const res = await api.get<EntryDetail>(`/journal/${entry.id}`);
+      if (res.data) { setReading(res.data); setView('read'); }
+    } catch {
+      Alert.alert('خطأ', 'تعذّر فتح المذكرة.');
+    }
+  }
 
   function confirmDelete(id: string) {
     Alert.alert('حذف المذكرة', 'هل أنتِ متأكدة؟ لا يمكن التراجع.', [
@@ -63,14 +73,6 @@ export default function JournalScreen() {
         <ScreenHeader title="مذكرة جديدة" showBack onBack={() => setView('list')} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
-            <TextInput
-              style={[styles.titleInput, { color: colors.text, borderColor: colors.border }]}
-              placeholder="العنوان (اختياري)"
-              placeholderTextColor={colors.textMuted}
-              value={title}
-              onChangeText={setTitle}
-              textAlign="right"
-            />
             <TextInput
               style={[styles.bodyInput, { color: colors.text, borderColor: colors.border }]}
               placeholder="اكتبي ما يجول في خاطركِ…"
@@ -99,7 +101,10 @@ export default function JournalScreen() {
   if (view === 'read' && reading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
-        <ScreenHeader title={reading.title ?? 'مذكرة'} showBack onBack={() => { setView('list'); setReading(null); }} />
+        <ScreenHeader
+          title={new Date(reading.created_at).toLocaleDateString('ar-LB', { dateStyle: 'medium' })}
+          showBack onBack={() => { setView('list'); setReading(null); }}
+        />
         <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
           <Text style={[styles.readDate, { color: colors.textMuted }]}>
             {new Date(reading.created_at).toLocaleDateString('ar-LB', { dateStyle: 'full' })}
@@ -135,16 +140,13 @@ export default function JournalScreen() {
         {isLoading && <Text style={{ color: colors.textMuted, textAlign: 'center' }}>جارٍ التحميل…</Text>}
 
         {entries.map(e => (
-          <Pressable
-            key={e.id}
-            onPress={() => { setReading(e); setView('read'); }}
-          >
+          <Pressable key={e.id} onPress={() => openEntry(e)}>
             <Card style={{ marginBottom: Spacing.xs }}>
-              <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
-                {e.title ?? 'بلا عنوان'}
+              <Text style={[styles.entryDate, { color: colors.text, fontSize: FontSize.md, fontWeight: FontWeight.semibold }]}>
+                {new Date(e.created_at).toLocaleDateString('ar-LB', { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
               <Text style={[styles.entryDate, { color: colors.textMuted }]}>
-                {new Date(e.created_at).toLocaleDateString('ar-LB', { dateStyle: 'medium' })}
+                {new Date(e.created_at).toLocaleTimeString('ar-LB', { timeStyle: 'short' })}
               </Text>
             </Card>
           </Pressable>
@@ -161,12 +163,10 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:         { flex: 1 },
-  titleInput:   { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, fontSize: FontSize.lg, fontWeight: FontWeight.semibold, marginBottom: Spacing.sm },
-  bodyInput:    { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, fontSize: FontSize.md, minHeight: 220, marginBottom: Spacing.sm },
-  privacyNote:  { fontSize: FontSize.xs, textAlign: 'center' },
-  readDate:     { fontSize: FontSize.sm, textAlign: 'right', marginBottom: Spacing.md },
-  readBody:     { fontSize: FontSize.md, lineHeight: 26, textAlign: 'right' },
-  entryTitle:   { fontSize: FontSize.md, fontWeight: FontWeight.semibold, textAlign: 'right' },
-  entryDate:    { fontSize: FontSize.xs, marginTop: 2, textAlign: 'right' },
+  safe:        { flex: 1 },
+  bodyInput:   { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, fontSize: FontSize.md, minHeight: 220, marginBottom: Spacing.sm },
+  privacyNote: { fontSize: FontSize.xs, textAlign: 'center' },
+  readDate:    { fontSize: FontSize.sm, textAlign: 'right', marginBottom: Spacing.md },
+  readBody:    { fontSize: FontSize.md, lineHeight: 26, textAlign: 'right' },
+  entryDate:   { fontSize: FontSize.xs, marginTop: 2, textAlign: 'right' },
 });

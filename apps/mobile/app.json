@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#FDF6F0"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.njoum.mobile",
@@ -55,18 +57,16 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Njoum needs your location to share it with emergency contacts during an SOS."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": false
     },
     "scheme": "njoum",
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
       }
     }
   }

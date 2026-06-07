@@ -1,17 +1,11 @@
 // ============================================================
 // Supabase client — mobile (anon key only, never service role)
-// Sessions are persisted in Expo SecureStore for security.
+// AsyncStorage used for session persistence (SecureStore causes
+// PKCE code-verifier loss in Expo Go OAuth flows).
+// Switch back to SecureStore in production builds.
 // ============================================================
-import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
-
-// SecureStore adapter for Supabase session persistence
-const ExpoSecureStoreAdapter = {
-  getItem:    (key: string) => SecureStore.getItemAsync(key),
-  setItem:    (key: string, value: string) => SecureStore.setItemAsync(key, value),
-  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -22,9 +16,9 @@ if (!supabaseUrl || !supabaseAnon) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnon, {
   auth: {
-    storage:          ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession:   true,
+    storage:            AsyncStorage,
+    autoRefreshToken:   true,
+    persistSession:     true,
     detectSessionInUrl: false,
   },
 });

@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import {
   listTroops, getTroop,
   listActivities, getActivity, completeActivity,
+  getMyCompletions, completeActivityByBody,
   listBadges, getMyBadges,
 } from '../controllers/scouts';
 
@@ -17,6 +18,8 @@ router.get('/badges',                    listBadges);
 
 // Auth required
 router.post('/activities/:id/complete',  requireAuth, completeActivity);
+router.get('/my-completions',            requireAuth, getMyCompletions);
+router.post('/complete',                 requireAuth, completeActivityByBody);
 router.get('/me/badges',                 requireAuth, getMyBadges);
 
 export default router;

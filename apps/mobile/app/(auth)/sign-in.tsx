@@ -4,11 +4,11 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable,
-  ActivityIndicator, Alert, Image,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
+import Constants from 'expo-constants';
 import { supabase } from '../../services/supabase';
 import { Colors, Spacing, FontSize, FontWeight, Radius } from '../../constants/theme';
 
@@ -20,31 +20,45 @@ export default function SignInScreen() {
   async function handleGoogleSignIn() {
     setLoading(true);
     try {
-      const redirectTo = makeRedirectUri({ scheme: 'njoum', path: 'auth/callback' });
+      // Supabase rejects paths containing "--" (Expo Go's /--/ prefix).
+      // Use the bare exp://host:port URL instead — no path needed.
+      // openAuthSessionAsync matches on prefix, so this still intercepts.
+      const metroHost = (Constants.expoConfig as any)?.hostUri as string | undefined;
+      const redirectTo = metroHost
+        ? `exp://${metroHost}`       // Expo Go: exp://10.108.242.47:8081
+        : 'njoum://auth/callback';   // Production build
+      console.log('[Auth] redirectTo:', redirectTo);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
           queryParams: { access_type: 'offline', prompt: 'consent' },
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
 
-      // Open browser for Google OAuth
       if (data.url) {
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        console.log('[Auth] openAuthSessionAsync result type:', result.type);
+
         if (result.type === 'success' && result.url) {
-          // Supabase will detect the session from the callback URL automatically
-          const { error: sessionError } = await supabase.auth.exchangeCodeForSession(
-            new URL(result.url).searchParams.get('code') ?? ''
-          );
-          if (sessionError) throw sessionError;
+          // iOS: Custom Tab intercepted the redirect — exchange code here
+          console.log('[Auth] callback URL:', result.url);
+          const params = new URLSearchParams(result.url.split('?')[1] ?? '');
+          const code = params.get('code');
+          if (code) {
+            const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+            if (sessionError) throw sessionError;
+          }
+          // Android: result.type may be 'cancel' — deep link fires via
+          // Linking.addEventListener in _layout.tsx instead
         }
       }
     } catch (err: any) {
-      Alert.alert('Sign-in failed', err?.message ?? 'Please try again.');
+      Alert.alert('خطأ في تسجيل الدخول', err?.message ?? 'حاولي مرة أخرى.');
     } finally {
       setLoading(false);
     }

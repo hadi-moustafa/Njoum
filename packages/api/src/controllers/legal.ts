@@ -21,12 +21,12 @@ export async function listLegalGuides(req: Request, res: Response, next: NextFun
 
     let query = supabaseAdmin
       .from('legal_guides')
-      .select('id, title, category, country_code, language, version, updated_at')
+      .select('id, title, category, country, language, version, updated_at')
       .eq('is_published', true)
       .eq('language', language)
       .order('category');
 
-    if (country)  query = query.eq('country_code', country);
+    if (country)  query = query.eq('country', country);
     if (category) query = query.eq('category', category);
 
     const { data, error } = await query;
@@ -41,7 +41,7 @@ export async function getLegalGuide(req: Request, res: Response, next: NextFunct
   try {
     const { data, error } = await supabaseAdmin
       .from('legal_guides')
-      .select('id, title, body, category, country_code, language, version, updated_at')
+      .select('id, title, body, category, country, language, version, updated_at')
       .eq('id', req.params.id!)
       .eq('is_published', true)
       .single();
@@ -58,11 +58,11 @@ export async function listLegalAidOrgs(req: Request, res: Response, next: NextFu
 
     let query = supabaseAdmin
       .from('legal_aid_orgs')
-      .select('id, name, description, website, phone, email, country_code, city, is_free')
+      .select('id, name, description, website, phone, email, country, city, is_free')
       .eq('is_active', true)
       .order('name');
 
-    if (country) query = query.eq('country_code', country);
+    if (country) query = query.eq('country', country);
 
     const { data, error } = await query;
     if (error) throw new AppError(500, 'DB_ERROR', error.message);

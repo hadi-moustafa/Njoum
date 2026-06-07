@@ -12,7 +12,7 @@ import { useColorScheme } from '../../../hooks/useColorScheme';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
-interface MoodLog { id: string; score: number; emoji: string; note?: string; logged_at: string }
+interface MoodLog { id: string; score: number; emoji: string; note?: string; log_date: string }
 
 const MOODS: { score: number; emoji: string; label: string }[] = [
   { score: 1, emoji: '😔', label: 'حزينة'    },
@@ -48,11 +48,8 @@ export default function MoodScreen() {
   const logs   = logsData?.data  ?? [];
   const streak = streakData?.data?.streak ?? 0;
 
-  const todayLog = logs.find(l => {
-    const d = new Date(l.logged_at);
-    const t = new Date();
-    return d.toDateString() === t.toDateString();
-  });
+  const today    = new Date().toISOString().split('T')[0]!;
+  const todayLog = logs.find(l => l.log_date === today);
 
   const mutation = useMutation({
     mutationFn: (score: number) => {
@@ -119,7 +116,7 @@ export default function MoodScreen() {
         <Text style={[styles.section, { color: colors.text }]}>السجل الأخير</Text>
         {isLoading && <Text style={{ color: colors.textMuted, textAlign: 'center' }}>جارٍ التحميل…</Text>}
         {logs.slice(0, 14).map(log => {
-          const date = new Date(log.logged_at);
+          const date = new Date(log.log_date);
           return (
             <Card key={log.id} style={styles.histCard}>
               <View style={[styles.scoreDot, { backgroundColor: scoreColor(log.score) }]}>
