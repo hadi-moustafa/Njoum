@@ -411,6 +411,29 @@ GET    /api/v1/content/videos?category=grabbed
 
 GET    /api/v1/legal/guides?country=LB
 GET    /api/v1/legal/aid-orgs?country=LB
+GET    /api/v1/legal/guides/:id
+
+GET    /api/v1/journey
+POST   /api/v1/journey
+PATCH  /api/v1/journey/:id/safe
+PATCH  /api/v1/journey/:id/cancel
+
+GET    /api/v1/events
+GET    /api/v1/events/:id
+
+GET    /api/v1/mentor/available
+GET    /api/v1/mentor/my
+GET    /api/v1/mentor/mentees
+POST   /api/v1/mentor/request
+PATCH  /api/v1/mentor/:id/accept
+PATCH  /api/v1/mentor/:id/end
+
+GET    /api/v1/scouts/my-completions
+POST   /api/v1/scouts/complete
+
+GET    /api/v1/users/me/badges
+GET    /api/v1/users/me/notification-preferences
+PATCH  /api/v1/users/me/notification-preferences/:id
 
 # Admin routes
 GET    /api/v1/admin/users
@@ -721,7 +744,7 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 
 ### In Progress / Next
 
-- Phase 3 complete — Web admin dashboard (Next.js 14, admin-only)
+- Phase 7 complete — Mobile API wiring, new screens, SOS shake, scouts completion, web quiz editor, events management
 
 #### Phase 3 file inventory
 
@@ -768,6 +791,36 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 | 4.3 Swagger UI endpoint | `packages/api/src/index.ts` → `GET /api/docs`, `GET /api/docs/openapi.json` |
 | 4.4 Sentry API integration | `packages/api/src/index.ts` (Sentry.init + setupExpressErrorHandler), `packages/api/package.json` (@sentry/node dep) |
 | 4.4 Env docs | `.env.example` (NEXT_PUBLIC_ web vars, GitHub Actions secrets doc) |
+
+#### Phase 7 file inventory (2026-06-06)
+
+| Step | Files |
+|---|---|
+| 7.DB | `supabase/migrations/20260606000001_phase7_rls_and_push_token.sql` (push_token col, 15 new RLS policies, indexes) |
+| 7.API Journey | `packages/api/src/controllers/journey.ts`, `packages/api/src/routes/journey.ts` (GET list, POST start, PATCH safe/cancel + SMS to contacts) |
+| 7.API Events | `packages/api/src/controllers/events.ts`, `packages/api/src/routes/events.ts` (GET list, GET detail) |
+| 7.API Mentor | `packages/api/src/controllers/mentor.ts`, `packages/api/src/routes/mentor.ts` (GET available/my/mentees, POST request, PATCH accept/end) |
+| 7.API Users | `packages/api/src/controllers/users.ts` (+push_token field, +getNotificationPreferences, +updateNotificationPreference, +getMyBadges) |
+| 7.API Scouts | `packages/api/src/controllers/scouts.ts` (+getMyCompletions, +completeActivityByBody w/ badge auto-award) |
+| 7.API Wiring | `packages/api/src/index.ts` (journey, events, mentor routes mounted) |
+| 7.Mobile Quiz | `apps/mobile/app/quiz/[id].tsx` (full quiz player: progress bar, options, graded results with explanations) |
+| 7.Mobile Article | `apps/mobile/app/article/[id].tsx` (article detail with module-colored header) |
+| 7.Mobile Legal | `apps/mobile/app/legal/[id].tsx` (legal guide detail with disclaimer card) |
+| 7.Mobile Events | `apps/mobile/app/(tabs)/community/events.tsx` (events board with type badges, countdown, join URL) |
+| 7.Mobile Mentor | `apps/mobile/app/(tabs)/community/mentor.tsx` (mentor request, status, accept/end flow) |
+| 7.Mobile Community | `apps/mobile/app/(tabs)/community/index.tsx` (added Events + Mentor quick-nav row) |
+| 7.Mobile Journey | `apps/mobile/app/(tabs)/safety/journey.tsx` (fixed: correct API endpoint, TextInput for destination, safe confirmation alert) |
+| 7.Mobile Profile | `apps/mobile/app/(tabs)/profile.tsx` (added: badges horizontal scroll, working notification prefs toggle, quick actions grid) |
+| 7.Mobile SOS | `apps/mobile/components/SOSButton.tsx` (added shake detection via expo-sensors Accelerometer — 3 shakes in 1.5s triggers SOS with confirmation) |
+| 7.Mobile SelfDefence | `apps/mobile/app/(tabs)/safety/selfdefence.tsx` (added play button + Modal video player) |
+| 7.Mobile Scouts | `apps/mobile/app/(tabs)/safety/scouts.tsx` (Start button → modal → complete activity → badge auto-award; progress bar; completed checkmarks) |
+| 7.Web Auth | `apps/web/lib/auth.ts` (real admin role enforcement: checks app_metadata then users table; redirects non-admins) |
+| 7.Web Login | `apps/web/app/login/page.tsx` (added not_admin error message) |
+| 7.Web QuizEditor | `apps/web/app/dashboard/content/QuizEditor.tsx` (2-step quiz creator: meta → questions with correct-answer picker) |
+| 7.Web NewQuizBtn | `apps/web/app/dashboard/content/NewQuizButton.tsx` (modal trigger for QuizEditor) |
+| 7.Web Content | `apps/web/app/dashboard/content/page.tsx` (integrated NewQuizButton into quizzes tab) |
+| 7.Web Events | `apps/web/app/dashboard/events/page.tsx`, `EventForm.tsx`, `DeleteEventButton.tsx` (full events CRUD dashboard) |
+| 7.Web Sidebar | `apps/web/components/Sidebar.tsx` (added Events nav item) |
 
 #### Phase 5 file inventory
 
@@ -826,6 +879,157 @@ All dashboard pages now bypass the Express API and query Supabase directly (serv
 | 6.4 Root layout | `apps/web/app/layout.tsx` (added `<Toaster />` from sonner for toast notifications) |
 | 6.4 Env | `apps/web/.env.local` (SUPABASE_SERVICE_ROLE_KEY placeholder added with instructions) |
 
+---
+
+## Project Status — April 2026
+
+> Quick-read for whoever picks this up next. Tells you what works today,
+> what the database actually looks like, and what still needs building.
+
+### ✅ What Is Fully Built
+
+#### Backend API (`packages/api/`)
+- Express server with JWT auth middleware (verifies Supabase tokens), rate limiting, Zod validation, error handler, response envelope
+- All route groups wired and tested: users, SOS, hotlines, mood, journal, cycles, community, content, scouts, legal, admin
+- Admin analytics endpoints: stats, recent SOS, mood trend, module engagement, SOS monthly
+- Encryption service (AES-256-GCM) for journal + cycle data
+- Cycle predictor logic (application-layer, not DB)
+- FCM push notifications + Twilio SMS
+- Cloudinary file upload (badge certificates via PDFKit)
+- OpenAI Moderation API integration on community posts
+- OpenAPI 3.0 spec + Swagger UI at `/api/docs`
+- Sentry error tracking
+- Jest test suite: encryption, cyclePredictor, auth middleware, errorHandler, response helpers, hotlines controller (≥70% coverage target)
+- CI/CD: GitHub Actions (lint → typecheck → test → build → deploy)
+
+#### Web Admin Dashboard (`apps/web/`)
+- Next.js 14 App Router, fully admin-only (no public routes)
+- Google OAuth login via Supabase Auth
+- All 8 dashboard pages complete with beautiful UI and **direct Supabase queries** (bypasses offline Express API):
+  - `/dashboard` — stat cards (users, active SOS, open reports, published articles) + recent SOS table
+  - `/dashboard/users` — search + role filter, ban/unban, role change via Server Actions
+  - `/dashboard/hotlines` — country tabs, add/toggle/delete hotlines via Server Actions
+  - `/dashboard/content` — articles/quizzes/videos tabs, publish toggle, article editor (TipTap rich text)
+  - `/dashboard/moderation` — report queue by status, resolve/dismiss/remove-post actions
+  - `/dashboard/scouts` — troops/activities/badges tabs with member counts
+  - `/dashboard/analytics` — mood trend chart (Recharts), module engagement bars, SOS monthly table
+  - `/dashboard/content/new` — TipTap article editor with draft/publish
+- All mutations use Server Actions + `revalidatePath` (no page reloads needed)
+- Toast notifications via `sonner`
+- Seed data: 15 users, 20 hotlines, 12 articles, 3 quizzes, 12 SOS events, 30-day mood logs, 8 badges, 2 troops, 8 activities, 7 content reports
+
+#### Mobile App (`apps/mobile/`)
+- Full Expo Router shell with AuthGuard, RTL support, React Query
+- 5-tab navigation: Home, Community, Safety, Wellness, Profile
+- **Home**: daily affirmation, mood picker, quick-access grid
+- **Safety**: hotlines, emergency contacts, journey tracking, self-defence library, legal guides, scouts, learn
+- **Wellness**: mood check-in with 14-day history, encrypted journal (list/compose/read), cycle tracker with predictions
+- **Community**: groups list, post feed with reactions + anonymous toggle
+- **Profile**: role badge, notification preferences, sign-out
+- SOS button: pulse animation, 10-second grace period, cancel
+- Push notifications: FCM token registration, deep-link routing, listener setup
+- Sentry error tracking
+
+#### Database (`supabase/`)
+- 25 tables, all with RLS enabled (deny-all default + explicit policies)
+- Migrations: `20260415000001_create_core_tables.sql`, `20260415000002_role_sync_trigger.sql`
+- Seed: `supabase/seed.sql` (schema-accurate, April 2026 — run in Supabase SQL Editor)
+
+---
+
+### ⚠️ Known Issues / Schema Alignment (Fixed April 2026)
+
+The actual Supabase schema differs from the original assumptions in several column names.
+All dashboard pages, server actions, and seed.sql have been corrected:
+
+| Wrong (old) | Correct (actual DB) | Affected tables |
+|---|---|---|
+| `display_name` | `full_name` | `users` |
+| `country_code` | `country` | `users`, `hotlines`, `scouts_troops`, `legal_guides`, `legal_aid_orgs` |
+| `language` | `locale` | `users` |
+| `number` | `phone` | `hotlines` |
+| `is_24h` | does not exist | `hotlines` |
+| `description` | does not exist | `hotlines`, `legal_aid_orgs` |
+| `created_by` | `creator_id` | `community_groups` |
+| `reporter_id` | `reported_by` | `content_reports` |
+| `sort_order` | `order_index` | `quiz_questions` |
+| `latitude`/`longitude`/`address` | `lat`/`lng` (no address) | `sos_events` |
+| `logged_at` | `log_date` (date type) | `mood_logs` |
+| `module`/`difficulty`/`estimated_minutes` | `age_tier`/`category` | `activities` |
+| `actor_id` | `user_id` | `audit_logs` |
+| `deleted_at` | does not exist | `content_articles` |
+| `language`/`is_active` | do not exist | `safety_quizzes` |
+| `is_free`/`city`/`website` | `is_verified`/`region`/`website_url` | `legal_aid_orgs` |
+
+**UUID format note:** PostgreSQL UUIDs only accept hex digits (0–9, a–f).
+Old seed used invalid prefixes like `h`, `g`, `p`, `r`, `q`, `t`.
+Fixed prefixes: hotlines→`aa`, groups→`cb`, posts→`cd`, reports→`de`, quizzes→`fe`, troops→`ab`.
+
+---
+
+### 🚀 What Needs to Be Built Next
+
+#### Phase 7 — COMPLETE (2026-06-06)
+
+All items from Phase 7 are now built. See Phase 7 file inventory above.
+
+#### Phase 8 — Remaining Polish (NEXT)
+
+| Priority | Feature | Notes |
+|---|---|---|
+| 🔴 HIGH | SOS live location streaming | Supabase Realtime channel `sos:{event_id}` for live lat/lng updates. `expo-location` is in dependencies. |
+| 🔴 HIGH | Google Maps live tracking screen | Show live location on map during active SOS. `GOOGLE_MAPS_API_KEY` in `.env.example`. |
+| 🟡 MEDIUM | Offline caching (MMKV) | React Query + MMKV persistence for hotlines + offline-capable activities and videos. |
+| 🟡 MEDIUM | Cycle reminder push notifications | `cycle_reminders` table + FCM service exist — need a scheduled job or cron to send reminders. |
+| 🟡 MEDIUM | Badge certificate PDF download | `GET /api/v1/badges/:id/certificate` exists. Add "Download Certificate" to profile badges. |
+| 🟡 MEDIUM | Real video player (expo-av) | Replace modal placeholder with actual expo-av video player for self-defence videos. |
+| 🟡 MEDIUM | Role sync trigger test | Verify `20260415000002_role_sync_trigger.sql` fires correctly on `users.role` update. |
+| 🟢 LOW | Hotline report queue in web | `hotline_reports` table exists. Review page for admin. |
+| 🟢 LOW | Legal guides editor in web | TipTap form for `legal_guides` CRUD (same pattern as article editor). |
+| 🟢 LOW | Parental consent UX | Required for users under 13 (COPPA / GDPR-K). |
+
+#### Phase 9 — Pre-Launch
+
+| Task | Notes |
+|---|---|
+| End-to-end test pass | Test every SOS flow on a real device on 3G. Target: ≤3s dispatch. |
+| Security audit | Review RLS policies on all 25 tables. Confirm journal/cycle data never leaves server unencrypted. |
+| WCAG 2.1 AA audit | Contrast ratios, focus management, screen reader labels. |
+| Legal review | Hotline numbers need per-country legal sign-off before publishing. |
+| App Store submission prep | Expo EAS Build, privacy policy, screenshots, age rating (likely 12+). |
+| Load test | Simulate 10,000 concurrent users. Fix any p95 > 500ms routes. |
+
+---
+
+### 🗝️ How to Run Locally (Quick Reference)
+
+```bash
+# 1. Install dependencies
+export PATH="$HOME/.local/share/pnpm:$PATH"
+pnpm install --filter @njoum/web --filter @njoum/shared
+
+# 2. Start Redis only (DB is on Supabase cloud, no local Postgres)
+docker compose up -d
+
+# 3. Fill in apps/web/.env.local — you need:
+#    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+
+# 4. Run seed in Supabase SQL Editor (copy-paste supabase/seed.sql)
+
+# 5. Start web dashboard
+cd apps/web && pnpm dev    # http://localhost:3000
+
+# 6. Start API (optional — dashboard works without it)
+cd packages/api && pnpm dev   # http://localhost:3001
+
+# 7. Start mobile app
+cd apps/mobile && pnpm start  # Expo Go or simulator
+```
+
+**Login:** Google OAuth only. Any Google account can log in as admin currently (role gate is temporarily open — see Phase 8 item above).
+
+---
+
 ### Open / Future Work
 
 - Parental consent UX for users under 13 (COPPA / GDPR-K)
@@ -857,4 +1061,4 @@ All dashboard pages now bypass the Express API and query Supabase directly (serv
 
 ---
 
-*Last updated: April 2026 — v1.0 SRS baseline*
+*Last updated: April 2026 — v1.1 (post Phase 6: dashboard complete, schema aligned, seed fixed)*

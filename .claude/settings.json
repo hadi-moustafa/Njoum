@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i 's/\\\\.select\\(\\\\x27full_name, display_name\\\\x27\\)/\\\\.select\\(\\\\x27full_name\\\\x27\\)/g' /home/HM/code/Njoum/packages/api/src/controllers/journey.ts)",
+      "Bash(sed -i 's/user?.user?.full_name/user?.full_name/g' /home/HM/code/Njoum/packages/api/src/controllers/journey.ts)",
+      "Bash(sed -i 's/id, full_name, display_name, avatar_url, country_code/id, full_name, avatar_url, country/g' /home/HM/code/Njoum/packages/api/src/controllers/mentor.ts)",
+      "Bash(sed -i 's/mentor:mentor_id \\( id, full_name, display_name, avatar_url \\)/mentor:mentor_id \\( id, full_name, avatar_url \\)/g' /home/HM/code/Njoum/packages/api/src/controllers/mentor.ts)",
+      "Bash(sed -i 's/mentee:mentee_id \\( id, full_name, display_name, avatar_url, age_range \\)/mentee:mentee_id \\( id, full_name, avatar_url, age_range \\)/g' /home/HM/code/Njoum/packages/api/src/controllers/mentor.ts)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('expo',{}\\).get\\('sdkVersion','?'\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('peerDeps:', json.dumps\\(d.get\\('peerDependencies',{}\\), indent=2\\)\\); print\\('deps react:', d.get\\('dependencies',{}\\).get\\('react',''\\)\\); print\\('deps rn:', d.get\\('dependencies',{}\\).get\\('react-native',''\\)\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -A5 \"name: react$\" /home/HM/code/Njoum/node_modules/.pnpm/lock.yaml)"
+    ]
+  }
+}

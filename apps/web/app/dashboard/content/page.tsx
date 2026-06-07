@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import Link from 'next/link';
 import ContentActions from './ContentActions';
+import NewQuizButton from './NewQuizButton';
 
 const MODULE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   safety:       { label: 'السلامة',          icon: '🛡️', color: 'bg-blue-50 text-blue-700 border-blue-200'     },
@@ -131,32 +132,37 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
 
       {/* Quizzes tab */}
       {tab === 'quizzes' && (
-        <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-njoum-bg">
-              <tr>
-                <th className="text-right px-6 py-3 text-njoum-muted font-medium">العنوان</th>
-                <th className="text-right px-6 py-3 text-njoum-muted font-medium">القسم</th>
-                <th className="text-right px-6 py-3 text-njoum-muted font-medium">الصعوبة</th>
-                <th className="text-right px-6 py-3 text-njoum-muted font-medium">التاريخ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-njoum-border">
-              {quizzes.map((q: any) => (
-                <tr key={q.id} className="hover:bg-njoum-bg/40 transition-colors">
-                  <td className="px-6 py-3 font-medium text-njoum-text">{q.title}</td>
-                  <td className="px-6 py-3"><ModuleBadge module={q.module} /></td>
-                  <td className="px-6 py-3 text-xs text-njoum-muted">{DIFF_LABELS[q.difficulty] ?? q.difficulty}</td>
-                  <td className="px-6 py-3 text-njoum-muted text-xs">
-                    {new Date(q.created_at).toLocaleDateString('ar-LB', { dateStyle: 'short' })}
-                  </td>
+        <div>
+          <div className="flex justify-end mb-4">
+            <NewQuizButton />
+          </div>
+          <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-njoum-bg">
+                <tr>
+                  <th className="text-right px-6 py-3 text-njoum-muted font-medium">العنوان</th>
+                  <th className="text-right px-6 py-3 text-njoum-muted font-medium">القسم</th>
+                  <th className="text-right px-6 py-3 text-njoum-muted font-medium">الصعوبة</th>
+                  <th className="text-right px-6 py-3 text-njoum-muted font-medium">التاريخ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {quizzes.length === 0 && (
-            <div className="py-16 text-center"><p className="text-4xl mb-2">❓</p><p className="text-njoum-muted text-sm">لا توجد اختبارات بعد.</p></div>
-          )}
+              </thead>
+              <tbody className="divide-y divide-njoum-border">
+                {quizzes.map((q: any) => (
+                  <tr key={q.id} className="hover:bg-njoum-bg/40 transition-colors">
+                    <td className="px-6 py-3 font-medium text-njoum-text">{q.title}</td>
+                    <td className="px-6 py-3"><ModuleBadge module={q.module} /></td>
+                    <td className="px-6 py-3 text-xs text-njoum-muted">{DIFF_LABELS[q.difficulty] ?? q.difficulty}</td>
+                    <td className="px-6 py-3 text-njoum-muted text-xs">
+                      {new Date(q.created_at).toLocaleDateString('ar-LB', { dateStyle: 'short' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {quizzes.length === 0 && (
+              <div className="py-16 text-center"><p className="text-4xl mb-2">❓</p><p className="text-njoum-muted text-sm">لا توجد اختبارات بعد.</p></div>
+            )}
+          </div>
         </div>
       )}
 

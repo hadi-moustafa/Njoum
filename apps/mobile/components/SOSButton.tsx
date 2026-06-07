@@ -2,6 +2,7 @@
 // SOS Button — fixed above the tab bar on every screen.
 // Tap → 10-second countdown → fires SOS.
 // Tap again during countdown → cancels.
+// Shake phone 3× rapidly → fires SOS immediately.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -9,9 +10,14 @@ import {
   Alert, Vibration, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Accelerometer } from 'expo-sensors';
 import { api } from '../services/api';
 import { Colors, TAB_BAR_HEIGHT, SOS_BUTTON_SIZE, FontSize, FontWeight } from '../constants/theme';
 import { SOS_GRACE_PERIOD_SECONDS } from '@njoum/shared';
+
+const SHAKE_THRESHOLD   = 2.5;  // g-force threshold
+const SHAKE_WINDOW_MS   = 1500; // detect 3 shakes within this window
+const SHAKE_COUNT_NEEDED = 3;
 
 export function SOSButton() {
   const insets   = useSafeAreaInsets();
@@ -21,7 +27,73 @@ export function SOSButton() {
   const intervalRef           = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim             = useRef(new Animated.Value(1)).current;
 
-  // Pulse animation when counting down
+  // Shake detection state
+  const shakeTimestamps = useRef<number[]>([]);
+  const lastAccel       = useRef({ x: 0, y: 0, z: 0 });
+
+  // ── Shake detection ─────────────────────────────────────
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(100);
+
+    const sub = Accelerometer.addListener(({ x, y, z }) => {
+      const prev = lastAccel.current;
+      const delta = Math.sqrt(
+        Math.pow(x - prev.x, 2) +
+        Math.pow(y - prev.y, 2) +
+        Math.pow(z - prev.z, 2)
+      );
+      lastAccel.current = { x, y, z };
+
+      if (delta > SHAKE_THRESHOLD) {
+        const now = Date.now();
+        shakeTimestamps.current = [
+          ...shakeTimestamps.current.filter(t => now - t < SHAKE_WINDOW_MS),
+          now,
+        ];
+
+        if (shakeTimestamps.current.length >= SHAKE_COUNT_NEEDED) {
+          shakeTimestamps.current = [];
+          // Only trigger if currently idle
+          if (state === 'idle') {
+            handleShakeTrigger();
+          }
+        }
+      }
+    });
+
+    return () => sub.remove();
+  }, [state]);
+
+  function handleShakeTrigger() {
+    Vibration.vibrate([0, 100, 50, 100]);
+    Alert.alert(
+      '🚨 SOS بالاهتزاز',
+      'تم كشف اهتزاز مفاجئ — هل تريدين تفعيل نداء الاستغاثة؟',
+      [
+        { text: 'لا', style: 'cancel' },
+        {
+          text: 'نعم، أرسلي الاستغاثة',
+          style: 'destructive',
+          onPress: () => {
+            setState('countdown');
+            setCount(SOS_GRACE_PERIOD_SECONDS);
+            // Short grace countdown then fire
+            let t = SOS_GRACE_PERIOD_SECONDS;
+            intervalRef.current = setInterval(() => {
+              t -= 1;
+              setCount(t);
+              if (t <= 0) {
+                clearInterval(intervalRef.current!);
+                fireSOS('shake');
+              }
+            }, 1000);
+          },
+        },
+      ]
+    );
+  }
+
+  // ── Pulse animation ──────────────────────────────────────
   useEffect(() => {
     if (state === 'countdown') {
       Animated.loop(
@@ -44,7 +116,7 @@ export function SOSButton() {
       setCount(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!);
-          fireSOS();
+          fireSOS('button');
           return 0;
         }
         return prev - 1;
@@ -52,11 +124,11 @@ export function SOSButton() {
     }, 1000);
   }
 
-  async function fireSOS() {
+  async function fireSOS(method: 'button' | 'shake' = 'button') {
     setState('active');
     try {
       const res = await api.post<{ sos_event_id: string }>('/sos', {
-        trigger_method: 'button',
+        trigger_method: method,
       });
       if (res.success && res.data) {
         setSosId(res.data.sos_event_id);
@@ -88,13 +160,12 @@ export function SOSButton() {
     }
     setState('idle');
     setSosId(null);
-    Alert.alert('بأمان', 'تم إخبار جهات الاتصال بأنك بأمان.');
+    Alert.alert('بأمان ✓', 'تم إخبار جهات الاتصال بأنكِ بأمان.');
   }
 
   function handlePress() {
     if (state === 'idle')      return startCountdown();
     if (state === 'countdown') return cancelSOS();
-    // active state → show resolve/cancel options
     Alert.alert(
       'أنتِ بأمان؟',
       'اختاري ما يناسب الوضع',
@@ -144,29 +215,29 @@ export function SOSButton() {
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position:  'absolute',
     alignSelf: 'center',
-    alignItems: 'center',
-    zIndex: 100,
+    alignItems:'center',
+    zIndex:    100,
   },
   button: {
-    width:         SOS_BUTTON_SIZE,
-    height:        SOS_BUTTON_SIZE,
-    borderRadius:  SOS_BUTTON_SIZE / 2,
-    alignItems:    'center',
-    justifyContent:'center',
-    shadowColor:   '#000',
-    shadowOffset:  { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius:  8,
-    elevation:     8,
-    borderWidth:   3,
-    borderColor:   'rgba(255,255,255,0.4)',
+    width:          SOS_BUTTON_SIZE,
+    height:         SOS_BUTTON_SIZE,
+    borderRadius:   SOS_BUTTON_SIZE / 2,
+    alignItems:     'center',
+    justifyContent: 'center',
+    shadowColor:    '#000',
+    shadowOffset:   { width: 0, height: 4 },
+    shadowOpacity:  0.3,
+    shadowRadius:   8,
+    elevation:      8,
+    borderWidth:    3,
+    borderColor:    'rgba(255,255,255,0.4)',
   },
   label: {
-    color:      '#FFFFFF',
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.extrabold,
+    color:         '#FFFFFF',
+    fontSize:      FontSize.sm,
+    fontWeight:    FontWeight.extrabold,
     letterSpacing: 0.5,
   },
   hint: {

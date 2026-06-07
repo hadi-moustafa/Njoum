@@ -55,8 +55,8 @@ export async function listGroups(req: Request, res: Response, next: NextFunction
 
     let query = supabaseAdmin
       .from('community_groups')
-      .select('id, name, description, category, is_private, avatar_url, created_at')
-      .is('deleted_at', null)
+      .select('id, name, description, category, is_private, member_count, created_at')
+      .eq('is_active', true)
       .order('name');
 
     if (category) query = query.eq('category', category);
@@ -75,7 +75,7 @@ export async function createGroup(req: Request, res: Response, next: NextFunctio
 
     const { data: group, error: groupError } = await supabaseAdmin
       .from('community_groups')
-      .insert({ ...body, created_by: req.user!.id })
+      .insert({ ...body, creator_id: req.user!.id })
       .select('id, name, category, is_private, created_at')
       .single();
 
@@ -99,7 +99,7 @@ export async function joinGroup(req: Request, res: Response, next: NextFunction)
       .from('community_groups')
       .select('id, is_private')
       .eq('id', req.params.id!)
-      .is('deleted_at', null)
+      .eq('is_active', true)
       .single();
 
     if (!group) throw new AppError(404, 'NOT_FOUND', 'Group not found.');
@@ -298,7 +298,7 @@ export async function reportPost(req: Request, res: Response, next: NextFunction
     const { data, error } = await supabaseAdmin
       .from('content_reports')
       .insert({
-        reporter_id: req.user!.id,
+        reported_by: req.user!.id,   // actual column name
         target_type: 'post',
         target_id:   req.params.id,
         reason,

@@ -43,6 +43,18 @@ export default function CommunityScreen() {
       <ScreenHeader title="مجتمعنا" />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 
+        {/* Quick nav row */}
+        <View style={styles.quickRow}>
+          <Pressable style={[styles.quickBtn, { backgroundColor: Colors.primary + '15' }]} onPress={() => router.push('/(tabs)/community/events' as any)}>
+            <Text style={{ fontSize: 20 }}>📅</Text>
+            <Text style={[styles.quickLabel, { color: Colors.primary }]}>الفعاليات</Text>
+          </Pressable>
+          <Pressable style={[styles.quickBtn, { backgroundColor: Colors.depth + '15' }]} onPress={() => router.push('/(tabs)/community/mentor' as any)}>
+            <Text style={{ fontSize: 20 }}>🌟</Text>
+            <Text style={[styles.quickLabel, { color: Colors.depth }]}>مرشدتي</Text>
+          </Pressable>
+        </View>
+
         <Text style={[styles.intro, { color: colors.textMuted }]}>
           انضمي إلى مجموعة آمنة تجمعكِ بنساء يشاركنكِ تجاربهن.
         </Text>
@@ -87,12 +99,15 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:      { flex: 1 },
-  intro:     { fontSize: FontSize.sm, textAlign: 'right', marginBottom: Spacing.lg, lineHeight: 22 },
-  groupCard: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start', marginBottom: Spacing.sm },
-  iconBox:   { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  groupName: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, textAlign: 'right', marginBottom: 2 },
-  groupDesc: { fontSize: FontSize.xs, textAlign: 'right', lineHeight: 18 },
-  metaRow:   { flexDirection: 'row', gap: Spacing.sm, marginTop: 6, justifyContent: 'flex-end' },
-  metaChip:  { fontSize: FontSize.xs },
+  safe:       { flex: 1 },
+  quickRow:   { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  quickBtn:   { flex: 1, alignItems: 'center', padding: Spacing.md, borderRadius: 14, gap: 6 },
+  quickLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  intro:      { fontSize: FontSize.sm, textAlign: 'right', marginBottom: Spacing.lg, lineHeight: 22 },
+  groupCard:  { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start', marginBottom: Spacing.sm },
+  iconBox:    { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  groupName:  { fontSize: FontSize.md, fontWeight: FontWeight.semibold, textAlign: 'right', marginBottom: 2 },
+  groupDesc:  { fontSize: FontSize.xs, textAlign: 'right', lineHeight: 18 },
+  metaRow:    { flexDirection: 'row', gap: Spacing.sm, marginTop: 6, justifyContent: 'flex-end' },
+  metaChip:   { fontSize: FontSize.xs },
 });

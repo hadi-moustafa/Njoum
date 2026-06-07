@@ -4,6 +4,7 @@
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -13,27 +14,38 @@ import { api } from '../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../constants/theme';
 
 const AGE_RANGE_LABELS: Record<string, string> = {
-  '10-12': '١٠–١٢',
-  '13-17': '١٣–١٧',
-  '18-24': '١٨–٢٤',
-  '25+':   '٢٥+'  ,
+  '10-12': '١٠–١٢', '13-17': '١٣–١٧', '18-24': '١٨–٢٤', '25+': '٢٥+',
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  girl:                 'فتاة',
-  parent:               'والدة / ولي أمر',
-  mentor:               'مرشدة',
-  content_admin:        'مديرة محتوى',
-  community_moderator:  'مشرفة مجتمع',
-  super_admin:          'مديرة عامة',
+  girl:                '🌸 فتاة',
+  parent:              '👩‍👧 والدة / ولي أمر',
+  mentor:              '⭐ مرشدة',
+  content_admin:       '✏️ مديرة محتوى',
+  community_moderator: '🛡️ مشرفة مجتمع',
+  super_admin:         '👑 مديرة عامة',
 };
 
-interface NotifPref { id: string; channel: string; type: string; enabled: boolean }
+const NOTIF_TYPE_LABELS: Record<string, string> = {
+  sos_alert:      'تنبيهات الاستغاثة',
+  period_reminder:'تذكير الدورة الشهرية',
+  journey_alert:  'تنبيهات الرحلة',
+  badge_earned:   'شاراتي المكتسبة',
+  affirmation:    'عبارات تحفيزية يومية',
+};
+
+interface NotifPref { id: string; channel: string; notif_type: string; is_enabled: boolean }
+interface UserBadge {
+  id: string;
+  earned_at: string;
+  badge: { id: string; name: string; module: string; image_url?: string };
+}
 
 export default function ProfileScreen() {
   const { colors }  = useColorScheme();
   const { profile, supaUser, signOut } = useAuthStore();
   const qc          = useQueryClient();
+  const router      = useRouter();
 
   const { data: notifsData } = useQuery({
     queryKey: ['notif-prefs'],
@@ -41,9 +53,21 @@ export default function ProfileScreen() {
   });
   const notifs = notifsData?.data ?? [];
 
+  const { data: badgesData } = useQuery({
+    queryKey: ['my-badges'],
+    queryFn:  () => api.get<UserBadge[]>('/users/me/badges'),
+  });
+  const badges = badgesData?.data ?? [];
+
   const signOutMutation = useMutation({
     mutationFn: signOut,
     onError: () => Alert.alert('خطأ', 'تعذّر تسجيل الخروج.'),
+  });
+
+  const togglePrefMutation = useMutation({
+    mutationFn: ({ id, is_enabled }: { id: string; is_enabled: boolean }) =>
+      api.patch(`/users/me/notification-preferences/${id}`, { is_enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notif-prefs'] }),
   });
 
   function confirmSignOut() {
@@ -59,6 +83,9 @@ export default function ProfileScreen() {
     ?? 'نجمتنا';
 
   const avatarLetter = displayName[0]?.toUpperCase() ?? '★';
+
+  // Group push notification prefs
+  const pushNotifs = notifs.filter(n => n.channel === 'push');
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
@@ -85,24 +112,52 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Notification preferences */}
-        {notifs.length > 0 && (
+        {/* Badges */}
+        {badges.length > 0 && (
           <>
-            <Text style={[styles.section, { color: colors.text }]}>إشعاراتي</Text>
+            <Text style={[styles.section, { color: colors.text }]}>شاراتي ⭐</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.lg }}>
+              {badges.map(ub => (
+                <View key={ub.id} style={[styles.badgeCard, { backgroundColor: Colors.accent + '20' }]}>
+                  <Text style={{ fontSize: 28 }}>
+                    {ub.badge.module === 'scouts' ? '⭐' :
+                     ub.badge.module === 'self_defence' ? '🥋' :
+                     ub.badge.module === 'wellness' ? '💚' :
+                     ub.badge.module === 'safety' ? '🛡️' : '🌸'}
+                  </Text>
+                  <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>{ub.badge.name}</Text>
+                  <Text style={[styles.badgeDate, { color: colors.textMuted }]}>
+                    {new Date(ub.earned_at).toLocaleDateString('ar-LB', { month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* Notification preferences */}
+        {pushNotifs.length > 0 && (
+          <>
+            <Text style={[styles.section, { color: colors.text }]}>إشعاراتي 🔔</Text>
             <Card style={{ marginBottom: Spacing.md }}>
-              {notifs.map((n, idx) => (
+              {pushNotifs.map((n, idx) => (
                 <View
                   key={n.id}
-                  style={[styles.prefRow, idx < notifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+                  style={[styles.prefRow, idx < pushNotifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
                 >
                   <Switch
-                    value={n.enabled}
-                    trackColor={{ true: Colors.primary }}
-                    onValueChange={() => {/* TODO: PATCH preference */}}
+                    value={n.is_enabled}
+                    trackColor={{ true: Colors.primary, false: colors.border }}
+                    ios_backgroundColor={colors.border}
+                    onValueChange={(val) => togglePrefMutation.mutate({ id: n.id, is_enabled: val })}
                   />
                   <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                    <Text style={[styles.prefLabel, { color: colors.text }]}>{n.type}</Text>
-                    <Text style={[styles.prefSub, { color: colors.textMuted }]}>{n.channel}</Text>
+                    <Text style={[styles.prefLabel, { color: colors.text }]}>
+                      {NOTIF_TYPE_LABELS[n.notif_type] ?? n.notif_type}
+                    </Text>
+                    <Text style={[styles.prefSub, { color: colors.textMuted }]}>
+                      {n.channel === 'push' ? 'إشعار' : n.channel === 'sms' ? 'رسالة نصية' : n.channel}
+                    </Text>
                   </View>
                 </View>
               ))}
@@ -126,13 +181,39 @@ export default function ProfileScreen() {
           />
         </Card>
 
+        {/* Quick actions */}
+        <Text style={[styles.section, { color: colors.text }]}>إجراءات سريعة</Text>
+        <View style={styles.actionsGrid}>
+          <Pressable
+            style={[styles.actionBtn, { backgroundColor: Colors.primary + '15' }]}
+            onPress={() => router.push('/(tabs)/safety/contacts' as any)}
+          >
+            <Text style={{ fontSize: 24 }}>📞</Text>
+            <Text style={[styles.actionLabel, { color: Colors.primary }]}>جهات الطوارئ</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.actionBtn, { backgroundColor: Colors.depth + '15' }]}
+            onPress={() => router.push('/(tabs)/community/mentor' as any)}
+          >
+            <Text style={{ fontSize: 24 }}>🌟</Text>
+            <Text style={[styles.actionLabel, { color: Colors.depth }]}>مرشدتي</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.actionBtn, { backgroundColor: Colors.accent + '15' }]}
+            onPress={() => router.push('/(tabs)/safety/scouts' as any)}
+          >
+            <Text style={{ fontSize: 24 }}>⭐</Text>
+            <Text style={[styles.actionLabel, { color: Colors.accent }]}>برنامج الكشافة</Text>
+          </Pressable>
+        </View>
+
         {/* Sign out */}
         <Button
           label="تسجيل الخروج"
           variant="outline"
           onPress={confirmSignOut}
           loading={signOutMutation.isPending}
-          style={{ borderColor: Colors.emergency }}
+          style={{ borderColor: Colors.emergency, marginTop: Spacing.md }}
         />
       </ScrollView>
     </SafeAreaView>
@@ -156,12 +237,22 @@ const styles = StyleSheet.create({
   displayName:   { fontSize: FontSize.xl, fontWeight: FontWeight.bold, marginBottom: 4 },
   meta:          { fontSize: FontSize.sm, marginBottom: Spacing.xs },
   roleBadge:     { paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: 20, marginTop: Spacing.xs },
-  roleLabel:     { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  roleLabel:     { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
   section:       { fontSize: FontSize.lg, fontWeight: FontWeight.bold, marginBottom: Spacing.sm, textAlign: 'right' },
+  // Badges
+  badgeCard:     { alignItems: 'center', padding: Spacing.md, borderRadius: 14, width: 90, marginRight: Spacing.sm, gap: 4 },
+  badgeName:     { fontSize: FontSize.xs, textAlign: 'center', fontWeight: FontWeight.semibold },
+  badgeDate:     { fontSize: 10 },
+  // Notification prefs
   prefRow:       { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
   prefLabel:     { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
   prefSub:       { fontSize: FontSize.xs, marginTop: 1 },
+  // Account info
   infoRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   infoLabel:     { fontSize: FontSize.sm },
   infoValue:     { fontSize: FontSize.sm, fontWeight: FontWeight.medium, textAlign: 'right', flex: 1 },
+  // Quick actions
+  actionsGrid:   { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  actionBtn:     { flex: 1, alignItems: 'center', padding: Spacing.md, borderRadius: 14, gap: 6 },
+  actionLabel:   { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, textAlign: 'center' },
 });

@@ -88,11 +88,10 @@ export async function listQuizzes(req: Request, res: Response, next: NextFunctio
     const language = (req.query['lang'] as string) ?? 'ar';
     const module   = req.query['module'] as string | undefined;
 
+    // actual schema has no is_active or language column
     let query = supabaseAdmin
       .from('safety_quizzes')
-      .select('id, title, module, difficulty, language')
-      .eq('is_active', true)
-      .eq('language', language)
+      .select('id, title, module, difficulty')
       .order('difficulty');
 
     if (module) query = query.eq('module', module);
@@ -109,19 +108,18 @@ export async function getQuiz(req: Request, res: Response, next: NextFunction) {
   try {
     const { data: quiz, error } = await supabaseAdmin
       .from('safety_quizzes')
-      .select('id, title, module, difficulty, language')
+      .select('id, title, module, difficulty')
       .eq('id', req.params.id!)
-      .eq('is_active', true)
       .single();
 
     if (error || !quiz) throw new AppError(404, 'NOT_FOUND', 'Quiz not found.');
 
     const { data: questions } = await supabaseAdmin
       .from('quiz_questions')
-      .select('id, question_text, options, sort_order')
+      .select('id, question_text, options, order_index')
       // correct_option_index is intentionally omitted — only sent after attempt
       .eq('quiz_id', req.params.id!)
-      .order('sort_order');
+      .order('order_index');
 
     ok(res, { ...quiz, questions: questions ?? [] });
   } catch (err) { next(err); }
@@ -157,17 +155,16 @@ export async function submitQuizAttempt(req: Request, res: Response, next: NextF
     });
 
     // Save attempt
+    // Actual schema: total_questions (not total), attempted_at (not completed_at), no answers col
     const { data: attempt } = await supabaseAdmin
       .from('quiz_attempts')
       .insert({
-        quiz_id:      req.params.id,
-        user_id:      req.user!.id,
+        quiz_id:         req.params.id,
+        user_id:         req.user!.id,
         score,
-        total:        questions.length,
-        answers:      gradedAnswers,
-        completed_at: new Date().toISOString(),
+        total_questions: questions.length,
       })
-      .select('id, score, total, completed_at')
+      .select('id, score, total_questions, attempted_at')
       .single();
 
     // Return graded answers + explanations
@@ -176,11 +173,11 @@ export async function submitQuizAttempt(req: Request, res: Response, next: NextF
     );
 
     created(res, {
-      attempt_id:   attempt?.id,
+      attempt_id:  attempt?.id,
       score,
-      total:        questions.length,
-      percentage:   Math.round((score / questions.length) * 100),
-      answers:      gradedAnswers,
+      total:       questions.length,
+      percentage:  Math.round((score / questions.length) * 100),
+      answers:     gradedAnswers,
       explanations,
     });
   } catch (err) { next(err); }
