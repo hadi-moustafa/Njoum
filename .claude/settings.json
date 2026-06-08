@@ -9,7 +9,34 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('expo',{}\\).get\\('sdkVersion','?'\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('peerDeps:', json.dumps\\(d.get\\('peerDependencies',{}\\), indent=2\\)\\); print\\('deps react:', d.get\\('dependencies',{}\\).get\\('react',''\\)\\); print\\('deps rn:', d.get\\('dependencies',{}\\).get\\('react-native',''\\)\\)\")",
       "Bash(python3 -c ' *)",
-      "Bash(grep -A5 \"name: react$\" /home/HM/code/Njoum/node_modules/.pnpm/lock.yaml)"
+      "Bash(grep -A5 \"name: react$\" /home/HM/code/Njoum/node_modules/.pnpm/lock.yaml)",
+      "Bash(npm info *)",
+      "Bash(python3 -c \"import json,sys; v=json.load\\(sys.stdin\\); print\\([x for x in v if x.startswith\\('3.'\\) or x.startswith\\('4.'\\)][-20:]\\)\")",
+      "Bash(python3 -c \"import json,sys; v=json.load\\(sys.stdin\\); print\\(v[-20:]\\)\")",
+      "Bash(python3 -c \"import json,sys; v=json.load\\(sys.stdin\\); print\\([x for x in v if x.startswith\\('54.'\\)]\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('version:', d.get\\('version'\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('RN version:', d.get\\('version'\\)\\)\")",
+      "Bash(pnpm store *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; python3 -c \"import json; f=open\\(\\\\\"{}\\\\\"\\); d=json.load\\(f\\); print\\(d.get\\(\\\\\"version\\\\\"\\)\\)\"')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('expo-modules-core version:', d.get\\('version'\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\({k:v for k,v in d.items\\(\\) if 'sdk' in k or k=='latest'}\\)\")",
+      "Bash(pnpm exec *)",
+      "Bash(curl -s \"http://localhost:8081/index.bundle?platform=android&dev=true\")",
+      "Bash(curl -s \"http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true\")",
+      "Bash(curl -s \"http://localhost:8081/\")",
+      "Bash(curl -s -H \"Accept: application/json\" \"http://localhost:8081/\")",
+      "Bash(curl -s \"http://localhost:8081/manifest\")",
+      "Bash(curl -s \"http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=android&dev=true\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=android&dev=true&lazy=true\")",
+      "Bash(python3 -c \"import json; print\\('expo-router:', json.load\\(open\\('apps/mobile/node_modules/expo-router/package.json'\\)\\)['version']\\)\")",
+      "Bash(python3 -c \"import json; print\\('expo-router:', json.load\\(open\\('/home/HM/code/Njoum/apps/mobile/node_modules/expo-router/package.json'\\)\\)['version']\\)\")",
+      "Bash(python3 -c \"import json; print\\('web react:', json.load\\(open\\('/home/HM/code/Njoum/apps/web/node_modules/react/package.json'\\)\\)['version']\\)\")",
+      "Bash(python3 -c \"import json; print\\('typescript:', json.load\\(open\\('/home/HM/code/Njoum/apps/mobile/node_modules/typescript/package.json'\\)\\)['version']\\)\")",
+      "Bash(python3 -c \"import json; print\\('typescript \\(root\\):', json.load\\(open\\('/home/HM/code/Njoum/node_modules/typescript/package.json'\\)\\)['version']\\)\")",
+      "Bash(mkdir -p /home/HM/code/Njoum/.vscode)"
+    ],
+    "additionalDirectories": [
+      "/home/HM/code/Njoum"
     ]
   }
 }

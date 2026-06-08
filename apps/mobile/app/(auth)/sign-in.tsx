@@ -1,182 +1,271 @@
-// ============================================================
-// Sign-In Screen — Google Sign-In via Supabase Auth
-// ============================================================
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Pressable,
-  ActivityIndicator, Alert,
+  View, Text, TextInput, Pressable, StyleSheet,
+  KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, TextInput as TI,
 } from 'react-native';
+import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
 import { supabase } from '../../services/supabase';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '../../constants/theme';
-
-WebBrowser.maybeCompleteAuthSession();
+import {
+  Colors, Spacing, FontSize, FontWeight, Radius, Shadow,
+} from '../../constants/theme';
 
 export default function SignInScreen() {
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  async function handleGoogleSignIn() {
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd,  setShowPwd]  = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+
+  const pwdRef = useRef<TI>(null);
+
+  const validate = () => {
+    if (!email.trim())    { setError('الرجاء إدخال البريد الإلكتروني'); return false; }
+    if (!/\S+@\S+\.\S+/.test(email)) { setError('البريد الإلكتروني غير صحيح'); return false; }
+    if (!password)        { setError('الرجاء إدخال كلمة المرور'); return false; }
+    return true;
+  };
+
+  const handleLogin = async () => {
+    setError('');
+    if (!validate()) return;
     setLoading(true);
-    try {
-      // Supabase rejects paths containing "--" (Expo Go's /--/ prefix).
-      // Use the bare exp://host:port URL instead — no path needed.
-      // openAuthSessionAsync matches on prefix, so this still intercepts.
-      const metroHost = (Constants.expoConfig as any)?.hostUri as string | undefined;
-      const redirectTo = metroHost
-        ? `exp://${metroHost}`       // Expo Go: exp://10.108.242.47:8081
-        : 'njoum://auth/callback';   // Production build
-      console.log('[Auth] redirectTo:', redirectTo);
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo,
-          queryParams: { access_type: 'offline', prompt: 'consent' },
-          skipBrowserRedirect: true,
-        },
-      });
+    const { error: e } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
-      if (error) throw error;
+    setLoading(false);
 
-      if (data.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-        console.log('[Auth] openAuthSessionAsync result type:', result.type);
-
-        if (result.type === 'success' && result.url) {
-          // iOS: Custom Tab intercepted the redirect — exchange code here
-          console.log('[Auth] callback URL:', result.url);
-          const params = new URLSearchParams(result.url.split('?')[1] ?? '');
-          const code = params.get('code');
-          if (code) {
-            const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-            if (sessionError) throw sessionError;
-          }
-          // Android: result.type may be 'cancel' — deep link fires via
-          // Linking.addEventListener in _layout.tsx instead
-        }
+    if (e) {
+      if (e.message.includes('Email not confirmed')) {
+        setError('البريد الإلكتروني لم يتم تأكيده بعد. يرجى إنشاء حساب جديد أو التواصل مع الدعم.');
+      } else if (e.message.includes('Invalid login')) {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      } else {
+        setError(e.message);
       }
-    } catch (err: any) {
-      Alert.alert('خطأ في تسجيل الدخول', err?.message ?? 'حاولي مرة أخرى.');
-    } finally {
-      setLoading(false);
+      return;
     }
-  }
+
+    router.replace('/(tabs)');
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Logo area */}
-      <View style={styles.hero}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoStar}>★</Text>
-        </View>
-        <Text style={styles.appName}>نجوم</Text>
-        <Text style={styles.tagline}>حين يحلّ الظلام، انظري للأعلى — نحن هناك</Text>
-      </View>
-
-      {/* Sign-in */}
-      <View style={styles.actions}>
-        <Pressable
-          style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}
-          onPress={handleGoogleSignIn}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="تسجيل الدخول بحساب Google"
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {loading ? (
-            <ActivityIndicator color={Colors.text} />
-          ) : (
-            <>
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleLabel}>المتابعة بحساب Google</Text>
-            </>
-          )}
-        </Pressable>
+          {/* ── Brand Header ── */}
+          <View style={styles.header}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoStar}>★</Text>
+            </View>
+            <Text style={styles.appName}>نجوم</Text>
+            <Text style={styles.tagline}>حين يحلّ الظلام، انظري للأعلى</Text>
+          </View>
 
-        <Text style={styles.disclaimer}>
-          باستخدام التطبيق، توافقين على سياسة الخصوصية وشروط الاستخدام.
-          بياناتك آمنة ومشفّرة.
-        </Text>
-      </View>
+          {/* ── Login Card ── */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>تسجيل الدخول</Text>
+
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {/* Email */}
+            <View style={styles.field}>
+              <Text style={styles.label}>البريد الإلكتروني</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="example@email.com"
+                placeholderTextColor={Colors.textLight}
+                textAlign="right"
+                returnKeyType="next"
+                onSubmitEditing={() => pwdRef.current?.focus()}
+              />
+            </View>
+
+            {/* Password */}
+            <View style={styles.field}>
+              <Text style={styles.label}>كلمة المرور</Text>
+              <View style={styles.pwdWrap}>
+                <TextInput
+                  ref={pwdRef}
+                  style={[styles.input, styles.pwdInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPwd}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.textLight}
+                  textAlign="right"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <Pressable onPress={() => setShowPwd(v => !v)} style={styles.eyeBtn}>
+                  <Text style={styles.eyeIcon}>{showPwd ? '🙈' : '👁'}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Login button */}
+            <Pressable
+              style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+              onPress={handleLogin}
+              disabled={loading}
+              accessibilityRole="button"
+            >
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.btnText}>دخول</Text>
+              }
+            </Pressable>
+          </View>
+
+          {/* ── Footer ── */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>ليس لديكِ حساب؟</Text>
+            <Link href="/(auth)/sign-up" style={styles.link}>إنشاء حساب جديد</Link>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.lg,
-    justifyContent: 'space-between',
-  },
-  hero: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
+  safe:   { flex: 1, backgroundColor: Colors.background },
+  scroll: { flexGrow: 1, padding: Spacing.md, justifyContent: 'center' },
+
+  // Header
+  header: {
+    alignItems:   'center',
+    marginBottom: Spacing.xl,
+    gap:          Spacing.sm,
   },
   logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width:           88,
+    height:          88,
+    borderRadius:    Radius.full,
     backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    alignItems:      'center',
+    justifyContent:  'center',
+    ...Shadow.lg,
   },
-  logoStar: {
-    fontSize: 48,
-    color: '#FFFFFF',
-  },
-  appName: {
-    fontSize: FontSize.h1,
+  logoStar: { fontSize: 40, color: '#fff' },
+  appName:  {
+    fontSize:   FontSize.h1,
     fontWeight: FontWeight.extrabold,
-    color: Colors.primary,
-    textAlign: 'center',
+    color:      Colors.primary,
   },
   tagline: {
-    fontSize: FontSize.md,
-    color: Colors.textMuted,
+    fontSize:  FontSize.sm,
+    color:     Colors.textMuted,
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: Spacing.md,
   },
-  actions: {
-    paddingBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  // Card
+  card: {
     backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    minHeight: 52,
+    borderRadius:    Radius.lg,
+    padding:         Spacing.lg,
+    marginBottom:    Spacing.md,
+    gap:             Spacing.md,
+    ...Shadow.md,
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  googleIcon: {
-    fontSize: FontSize.xl,
+  cardTitle: {
+    fontSize:   FontSize.xl,
     fontWeight: FontWeight.bold,
-    color: '#4285F4',
+    color:      Colors.text,
+    textAlign:  'right',
   },
-  googleLabel: {
-    fontSize: FontSize.lg,
+
+  // Error
+  errorBox: {
+    backgroundColor: '#FFF0F0',
+    borderRadius:    Radius.sm,
+    padding:         Spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.emergency,
+  },
+  errorText: { fontSize: FontSize.sm, color: Colors.emergency, textAlign: 'right' },
+
+  // Fields
+  field: { gap: 6 },
+  label: {
+    fontSize:   FontSize.sm,
     fontWeight: FontWeight.semibold,
-    color: Colors.text,
-    textAlign: 'center',
+    color:      Colors.text,
+    textAlign:  'right',
   },
-  disclaimer: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
+  input: {
+    borderWidth:   1.5,
+    borderColor:   Colors.border,
+    borderRadius:  Radius.md,
+    paddingVertical:   Spacing.sm + 4,
+    paddingHorizontal: Spacing.md,
+    fontSize:      FontSize.md,
+    color:         Colors.text,
+    backgroundColor: Colors.background,
+  },
+  pwdWrap: {
+    flexDirection: 'row',
+    alignItems:    'center',
+  },
+  pwdInput: { flex: 1 },
+  eyeBtn: {
+    position:    'absolute',
+    left:        Spacing.sm,
+    top: 0, bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  eyeIcon: { fontSize: 18 },
+
+  // Button
+  btn: {
+    backgroundColor: Colors.primary,
+    borderRadius:    Radius.md,
+    paddingVertical: Spacing.md,
+    alignItems:      'center',
+    minHeight:       52,
+    justifyContent:  'center',
+    ...Shadow.md,
+  },
+  btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  btnText: {
+    fontSize:   FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color:      '#fff',
+  },
+
+  // Footer
+  footer: {
+    alignItems:    'center',
+    gap:           Spacing.xs,
+    paddingBottom: Spacing.lg,
+  },
+  footerText: { fontSize: FontSize.sm, color: Colors.textMuted },
+  link: {
+    fontSize:   FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color:      Colors.primary,
   },
 });

@@ -10,9 +10,11 @@ import { api } from './api';
 // Display banners even when the app is foregrounded
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge:  false,
+    shouldShowAlert:  true,
+    shouldShowBanner: true,
+    shouldShowList:   true,
+    shouldPlaySound:  true,
+    shouldSetBadge:   false,
   }),
 });
 

@@ -17,8 +17,6 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@njoum/shared": [
         "../../packages/shared/src/index.ts"

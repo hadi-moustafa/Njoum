@@ -3,10 +3,12 @@
 // Bottom tabs: Home, Community, Safety, Wellness, Profile
 // SOS button floats above the tab bar on every tab.
 // ============================================================
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { View, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SOSButton } from '../../components/SOSButton';
+import { supabase } from '../../services/supabase';
 import { Colors, TAB_BAR_HEIGHT, FontSize } from '../../constants/theme';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
@@ -19,6 +21,17 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  // Redirect to sign-in when the Supabase session is revoked
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        router.replace('/(auth)/sign-in');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <View style={styles.root}>
@@ -57,6 +70,11 @@ export default function TabLayout() {
             title: 'المجتمع',
             tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
           }}
+        />
+        {/* Safety section — accessible from home tiles, not a primary tab */}
+        <Tabs.Screen
+          name="safety"
+          options={{ href: null }}
         />
         {/* Centre empty slot — SOS button floats here */}
         <Tabs.Screen
