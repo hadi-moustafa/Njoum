@@ -745,6 +745,63 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 ### In Progress / Next
 
 - Phase 7 complete — Mobile API wiring, new screens, SOS shake, scouts completion, web quiz editor, events management
+- Feature-by-feature redesign in progress (2026-06-07) — UI overhaul + Supabase wiring per feature
+
+#### Feature redesign file inventory (2026-06-07)
+
+| Feature | Status | Mobile files | Web manages |
+|---|---|---|---|
+| F1 Home | ✅ Done | `apps/mobile/app/(tabs)/index.tsx` (redesign: LinearGradient affirmation from `content_articles`, mood check-in with Supabase+local fallback, tile grid), `apps/mobile/constants/theme.ts` (Spacing, Radius, FontWeight tokens), `apps/mobile/app/(tabs)/_layout.tsx` (safety tab declared with href:null), `apps/mobile/app/_layout.tsx` (article/quiz/legal screens declared), `apps/mobile/package.json` (expo-linear-gradient ~14.0.2 added) | `/dashboard/analytics` (mood trend already there) |
+| Auth | ✅ Done | `app/index.tsx` (auth gate: session check → tabs or sign-in), `app/(auth)/sign-in.tsx` (email+password login), `app/(auth)/sign-up.tsx` (3-step: account/profile/safety), `app/(auth)/verify.tsx` (in-app OTP — code shown in dev mode box, cleared after verify), `store/signupStore.ts` (temp store for signup data+OTP), `supabase/migrations/20260607000001_users_self_rls.sql` (self-insert/update policies on users table) | `/dashboard/users` (already there) |
+| F2 SOS Button | 🔲 Next | — | — |
+| F3 Emergency Contacts | 🔲 | — | — |
+| F4 Crisis Hotlines | 🔲 | — | — |
+| F5 Journey Tracker | 🔲 | — | — |
+| F6 Mood Tracker | 🔲 | — | — |
+| F7 Journal | 🔲 | — | — |
+| F8 Cycle Tracker | 🔲 | — | — |
+| F9 Community Feed | 🔲 | — | — |
+| F10 Events | 🔲 | — | — |
+| F11 Safety Articles | 🔲 | — | — |
+| F12 Self-Defence | 🔲 | — | — |
+| F13 Legal Guides | 🔲 | — | — |
+| F14 Scouts | 🔲 | — | — |
+| F15 Profile | ✅ Done | `app/(tabs)/profile.tsx` (loads user data from Supabase directly, reset password via `supabase.auth.updateUser`, dark/light/system theme switcher, AR/EN language switcher with inline translations), `store/appStore.ts` (persisted theme+language via AsyncStorage), `hooks/useColorScheme.ts` (reads appStore.theme instead of system-only) | `/dashboard/users` |
+
+#### SDK 54 Package Alignment Fix (2026-06-07)
+
+**Root cause:** All mobile packages were at SDK 52 levels while `expo` was already at SDK 54. `expo-router@4` (SDK 52) + `@expo/metro-runtime@4` were incompatible with Expo Go SDK 54.0.8 (which embeds RN 0.81.5), causing the `TurboModuleRegistry: PlatformConstants could not be found` crash.
+
+| What changed | Details |
+|---|---|
+| `expo-router` | 4.0.17 → 6.0.24 (SDK 54 version) |
+| `react-native` | 0.76.7 → 0.81.5 (matches Expo Go SDK 54.0.8 native binary) |
+| `react` | 18.3.1 → 19.1.0 |
+| `@expo/metro-runtime` | 4.0.1 (SDK 52) → 6.1.2 (SDK 54, pulled by expo-router@6) |
+| `expo-constants` | 17.0.3 → 18.0.13 |
+| `expo-linking` | 7.0.3 → 8.0.12 |
+| `expo-font` | 13.0.2 → 14.0.12 |
+| `expo-splash-screen` | 0.29.13 → 31.0.13 |
+| `expo-status-bar` | 2.0.0 → 3.0.9 |
+| `expo-web-browser` | 14.0.1 → 15.0.11 |
+| `expo-auth-session` | 6.0.3 → 7.0.11 |
+| `expo-notifications` | 0.29.9 → 0.32.17 |
+| `expo-secure-store` | 14.0.0 → 15.0.8 |
+| `expo-sensors` | 14.0.1 → 15.0.8 |
+| `expo-device` | 7.0.1 → 8.0.10 |
+| `expo-location` | 18.0.4 → 19.0.8 |
+| `expo-local-authentication` | 15.0.1 → 17.0.8 |
+| `react-native-reanimated` | 3.16.1 → 4.1.1 |
+| `react-native-safe-area-context` | 4.12.0 → 5.6.0 |
+| `react-native-screens` | 4.4.0 → 4.16.0 |
+| `react-native-gesture-handler` | 2.20.2 → 2.28.0 |
+| `react-native-svg` | 15.8.0 → 15.12.1 |
+| `react-native-mmkv` | 3.0.2 → 4.0.0 |
+| `@sentry/react-native` | 5.20.0 → 7.2.0 |
+| `@react-native-async-storage/async-storage` | 2.1.2 → 2.2.0 |
+| Root pnpm overrides | React 18 → 19.1.0; added peerDependencyRules to ignore @expo/dom-webview |
+| Web `react`/`react-dom` | ^18.3.1 → ^19.0.0 (compatible with Next.js 14) |
+| New: `apps/mobile/metro.config.js` | pnpm monorepo Metro config (watchFolders + nodeModulesPaths for symlink resolution) |
 
 #### Phase 3 file inventory
 
