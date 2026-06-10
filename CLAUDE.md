@@ -745,6 +745,7 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 ### In Progress / Next
 
 - Phase 7 complete — Mobile API wiring, new screens, SOS shake, scouts completion, web quiz editor, events management
+- SOS feature complete (2026-06-10) — live location, Twilio SMS, Realtime broadcast, tracking page, admin SOS dashboard
 - Feature-by-feature redesign in progress (2026-06-07) — UI overhaul + Supabase wiring per feature
 
 #### Feature redesign file inventory (2026-06-07)
@@ -753,7 +754,7 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 |---|---|---|---|
 | F1 Home | ✅ Done | `apps/mobile/app/(tabs)/index.tsx` (redesign: LinearGradient affirmation from `content_articles`, mood check-in with Supabase+local fallback, tile grid), `apps/mobile/constants/theme.ts` (Spacing, Radius, FontWeight tokens), `apps/mobile/app/(tabs)/_layout.tsx` (safety tab declared with href:null), `apps/mobile/app/_layout.tsx` (article/quiz/legal screens declared), `apps/mobile/package.json` (expo-linear-gradient ~14.0.2 added) | `/dashboard/analytics` (mood trend already there) |
 | Auth | ✅ Done | `app/index.tsx` (auth gate: session check → tabs or sign-in), `app/(auth)/sign-in.tsx` (email+password login), `app/(auth)/sign-up.tsx` (3-step: account/profile/safety), `app/(auth)/verify.tsx` (in-app OTP — code shown in dev mode box, cleared after verify), `store/signupStore.ts` (temp store for signup data+OTP), `supabase/migrations/20260607000001_users_self_rls.sql` (self-insert/update policies on users table) | `/dashboard/users` (already there) |
-| F2 SOS Button | 🔲 Next | — | — |
+| F2 SOS Button | ✅ Done | `apps/mobile/components/SOSButton.tsx` (GPS location fetch before fire, Supabase Realtime broadcast every 5 s, call-contact prompt via `Linking`), `apps/mobile/services/sosRealtime.ts` (broadcast helper) | `/dashboard/sos` |
 | F3 Emergency Contacts | 🔲 | — | — |
 | F4 Crisis Hotlines | 🔲 | — | — |
 | F5 Journey Tracker | 🔲 | — | — |

@@ -14,6 +14,7 @@ const NAV = [
   { href: '/dashboard/moderation', label: 'الإشراف',        icon: '🛡️' },
   { href: '/dashboard/scouts',     label: 'الكشافة',        icon: '⭐' },
   { href: '/dashboard/events',     label: 'الفعاليات',      icon: '📅' },
+  { href: '/dashboard/sos',         label: 'نداءات SOS',      icon: '🆘' },
   { href: '/dashboard/analytics',  label: 'الإحصائيات',     icon: '📊' },
 ];
 

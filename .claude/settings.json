@@ -33,10 +33,13 @@
       "Bash(python3 -c \"import json; print\\('web react:', json.load\\(open\\('/home/HM/code/Njoum/apps/web/node_modules/react/package.json'\\)\\)['version']\\)\")",
       "Bash(python3 -c \"import json; print\\('typescript:', json.load\\(open\\('/home/HM/code/Njoum/apps/mobile/node_modules/typescript/package.json'\\)\\)['version']\\)\")",
       "Bash(python3 -c \"import json; print\\('typescript \\(root\\):', json.load\\(open\\('/home/HM/code/Njoum/node_modules/typescript/package.json'\\)\\)['version']\\)\")",
-      "Bash(mkdir -p /home/HM/code/Njoum/.vscode)"
+      "Bash(mkdir -p /home/HM/code/Njoum/.vscode)",
+      "Bash(pnpm add *)",
+      "Bash(mkdir -p /home/HM/code/Njoum/apps/web/app/track/\\\\[id\\\\] /home/HM/code/Njoum/apps/web/app/dashboard/sos)"
     ],
     "additionalDirectories": [
-      "/home/HM/code/Njoum"
+      "/home/HM/code/Njoum",
+      "/home/HM/code/Njoum/apps/web/app/track"
     ]
   }
 }
