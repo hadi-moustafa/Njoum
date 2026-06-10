@@ -22,7 +22,7 @@ const UpdateProfileSchema = z.object({
 
 const EmergencyContactSchema = z.object({
   name:          z.string().min(1).max(100),
-  phone:         z.string().min(7).max(20),
+  phone:         z.string().regex(/^\+\d{7,15}$/, 'Phone must be in E.164 format: +961XXXXXXXX'),
   relationship:  z.string().max(50).optional(),
   notify_order:  z.number().int().min(1).max(5),
   notify_on_sos: z.boolean().default(true),

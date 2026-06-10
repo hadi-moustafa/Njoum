@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { supabaseAdmin } from '../models/supabase';
-import { sendSms, buildSosMessage } from '../services/twilio';
+import { sendWhatsAppMessage, buildSosMessage, buildSafeMessage } from '../services/whatsapp';
 import { ok, created } from '../services/response';
 import { AppError } from '../middleware/errorHandler';
 import { SOS_TRACKING_LINK_TTL_MINS, SOS_GRACE_PERIOD_SECONDS } from '@njoum/shared';
@@ -45,7 +45,8 @@ export async function triggerSos(req: Request, res: Response, next: NextFunction
     if (sosError || !sosEvent) throw new AppError(500, 'SOS_FAILED', 'Could not create SOS event.');
 
     const expiresAt    = new Date(Date.now() + SOS_TRACKING_LINK_TTL_MINS * 60 * 1000);
-    const trackingLink = `${process.env.APP_URL}/track/${sosEvent.id}`;
+    const webBase      = process.env.WEB_URL ?? process.env.APP_URL;
+    const trackingLink = `${webBase}/track/${sosEvent.id}`;
 
     const { data: contacts } = await supabaseAdmin
       .from('emergency_contacts')
@@ -54,7 +55,11 @@ export async function triggerSos(req: Request, res: Response, next: NextFunction
       .eq('notify_on_sos', true)
       .order('notify_order', { ascending: true });
 
+    console.log(`[SOS] Dispatching to ${(contacts ?? []).length} contact(s) for event ${sosEvent.id}`);
+
     const dispatchPromises = (contacts ?? []).map(async (contact) => {
+      console.log(`[SOS] → Sending WhatsApp to ${contact.name} (${contact.phone})`);
+
       await supabaseAdmin
         .from('sos_notifications')
         .insert({
@@ -67,16 +72,18 @@ export async function triggerSos(req: Request, res: Response, next: NextFunction
         });
 
       try {
-        await sendSms({
+        await sendWhatsAppMessage({
           to:   contact.phone,
           body: buildSosMessage({ userName, trackingLink }),
         });
+        console.log(`[SOS] ✓ WhatsApp accepted for ${contact.name} (${contact.phone})`);
         await supabaseAdmin
           .from('sos_notifications')
           .update({ status: 'sent', sent_at: new Date().toISOString() })
           .eq('sos_event_id', sosEvent.id)
           .eq('contact_id', contact.id);
-      } catch {
+      } catch (err: any) {
+        console.error(`[SOS] ✗ WhatsApp FAILED for ${contact.name} (${contact.phone}):`, err?.message ?? err);
         await supabaseAdmin
           .from('sos_notifications')
           .update({ status: 'failed' })
@@ -148,7 +155,29 @@ export async function resolveSos(req: Request, res: Response, next: NextFunction
       .select('id, resolved_at')
       .single();
 
+    // Respond immediately, then send "I am safe" WhatsApp messages in background
     ok(res, data);
+
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('full_name')
+      .eq('id', req.user!.id)
+      .single();
+
+    const { data: contacts } = await supabaseAdmin
+      .from('emergency_contacts')
+      .select('name, phone')
+      .eq('user_id', req.user!.id)
+      .eq('notify_on_sos', true);
+
+    const userName = user?.full_name ?? 'A Njoum user';
+    const message  = buildSafeMessage({ userName });
+
+    for (const contact of contacts ?? []) {
+      sendWhatsAppMessage({ to: contact.phone, body: message })
+        .then(() => console.log(`[SOS] ✓ Safe message sent to ${contact.name} (${contact.phone})`))
+        .catch((err: any) => console.error(`[SOS] ✗ Safe message FAILED for ${contact.name}:`, err?.message ?? err));
+    }
   } catch (err) { next(err); }
 }
 

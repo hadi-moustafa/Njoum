@@ -12,7 +12,7 @@ import { supabaseAdmin } from '../models/supabase';
 import { ok, created } from '../services/response';
 import { AppError } from '../middleware/errorHandler';
 import { sendPushMulti } from '../services/fcm';
-import { sendSms } from '../services/twilio';
+import { sendWhatsAppMessage } from '../services/whatsapp';
 
 const StartJourneySchema = z.object({
   destination:      z.string().max(200).optional(),
@@ -88,7 +88,7 @@ export async function startJourney(req: Request, res: Response, next: NextFuncti
 
       for (const contact of (contacts ?? [])) {
         try {
-          await sendSms({ to: contact.phone, body: smsBody });
+          await sendWhatsAppMessage({ to: contact.phone, body: smsBody });
         } catch { /* non-blocking */ }
       }
     }
@@ -139,7 +139,7 @@ export async function markJourneySafe(req: Request, res: Response, next: NextFun
 
     for (const contact of (contacts ?? [])) {
       try {
-        await sendSms({ to: contact.phone, body: smsBody });
+        await sendWhatsAppMessage({ to: contact.phone, body: smsBody });
       } catch { /* non-blocking */ }
     }
 

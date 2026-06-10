@@ -40,10 +40,20 @@ import { openapiSpec }    from './openapi';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
+// Trust the first proxy hop (ngrok in dev, load balancer in prod).
+// Required so express-rate-limit reads X-Forwarded-For correctly.
+app.set('trust proxy', 1);
+
 // ── Security middleware ───────────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: process.env.APP_URL ?? 'http://localhost:3000',
+  // Allow the web dashboard origin AND requests with no origin
+  // (React Native, Expo Go, curl, Postman — they send no Origin header).
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);                       // mobile / no-origin
+    if (origin === process.env.APP_URL) return callback(null, true); // web dashboard
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 

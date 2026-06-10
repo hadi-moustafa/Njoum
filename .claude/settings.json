@@ -35,7 +35,13 @@
       "Bash(python3 -c \"import json; print\\('typescript \\(root\\):', json.load\\(open\\('/home/HM/code/Njoum/node_modules/typescript/package.json'\\)\\)['version']\\)\")",
       "Bash(mkdir -p /home/HM/code/Njoum/.vscode)",
       "Bash(pnpm add *)",
-      "Bash(mkdir -p /home/HM/code/Njoum/apps/web/app/track/\\\\[id\\\\] /home/HM/code/Njoum/apps/web/app/dashboard/sos)"
+      "Bash(mkdir -p /home/HM/code/Njoum/apps/web/app/track/\\\\[id\\\\] /home/HM/code/Njoum/apps/web/app/dashboard/sos)",
+      "Bash(npx tsc *)",
+      "Bash(awk '{print $1}')",
+      "Bash(ip addr *)",
+      "Bash(curl -s http://10.108.242.47:3001/api/v1/hotlines)",
+      "Bash(sudo firewall-cmd --list-ports)",
+      "Bash(sudo ufw status)"
     ],
     "additionalDirectories": [
       "/home/HM/code/Njoum",

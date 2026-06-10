@@ -5,7 +5,7 @@
 //  1. Tap (or shake 3×) → 10-second grace countdown
 //  2. If not cancelled → fireSOS():
 //     a. Capture GPS location
-//     b. POST /sos  (API sends Twilio SMS + logs event)
+//     b. POST /sos  (API sends WhatsApp message + logs event)
 //     c. Start Supabase Realtime broadcast of live location (every 5 s)
 //     d. Prompt user to call first emergency contact
 //  3. "I'm safe" → resolve, stops broadcast
