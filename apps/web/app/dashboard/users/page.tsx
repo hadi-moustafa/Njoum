@@ -46,7 +46,8 @@ export default async function UsersPage({
   if (roleFilter)   query = query.eq('role', roleFilter);
   if (searchFilter) query = query.or(`email.ilike.%${searchFilter}%,full_name.ilike.%${searchFilter}%`);
 
-  const { data: users = [] } = await query;
+  const { data: usersRaw } = await query;
+  const users = usersRaw ?? [];
 
   const ROLES = ['', 'girl', 'parent', 'mentor', 'content_admin', 'community_moderator', 'super_admin'];
 
@@ -100,7 +101,7 @@ export default async function UsersPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-njoum-border">
-            {(users ?? []).map((u: any) => {
+            {users.map((u: any) => {
               const isBanned = u.deleted_at !== null;
               return (
                 <tr key={u.id} className={`hover:bg-njoum-bg/40 transition-colors ${isBanned ? 'opacity-60' : ''}`}>
@@ -131,7 +132,7 @@ export default async function UsersPage({
             })}
           </tbody>
         </table>
-        {(users ?? []).length === 0 && (
+        {users.length === 0 && (
           <div className="py-16 text-center">
             <p className="text-4xl mb-2">👤</p>
             <p className="text-njoum-muted text-sm">لا توجد مستخدمات.</p>
