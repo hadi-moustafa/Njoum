@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import HotlineForm from './HotlineForm';
 import HotlineToggle from './HotlineToggle';
 
-export const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   police:           { label: 'شرطة',            icon: '🚔', color: 'bg-blue-50 text-blue-700 border-blue-200'     },
   fire:             { label: 'إطفاء',            icon: '🚒', color: 'bg-orange-50 text-orange-700 border-orange-200' },
   mental_health:    { label: 'الصحة النفسية',    icon: '🧠', color: 'bg-depth/10 text-depth border-depth/20'       },
