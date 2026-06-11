@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -51,7 +52,7 @@ function daysUntil(dateStr: string): number {
 }
 
 export default function CycleScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc         = useQueryClient();
 
   const [showForm,   setShowForm]   = useState(false);
@@ -91,6 +92,7 @@ export default function CycleScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="دورتي الشهرية" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

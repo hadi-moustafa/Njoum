@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { StarField } from '../../components/home/StarField';
 import { api } from '../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, Radius, TAB_BAR_HEIGHT } from '../../constants/theme';
 
@@ -46,7 +47,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 
 export default function QuizPlayerScreen() {
   const { id }      = useLocalSearchParams<{ id: string }>();
-  const { colors }  = useColorScheme();
+  const { isDark, colors }  = useColorScheme();
   const router      = useRouter();
 
   const [answers,    setAnswers]   = useState<Record<string, number>>({});
@@ -99,6 +100,7 @@ export default function QuizPlayerScreen() {
     const passed = result.percentage >= 70;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="نتيجة الاختبار" />
         <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 
@@ -152,6 +154,7 @@ export default function QuizPlayerScreen() {
   if (isLoading || !quiz || !current) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="جارٍ التحميل…" showBack />
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xl }}>
           {isLoading ? 'جارٍ تحميل الاختبار…' : 'الاختبار غير موجود.'}
@@ -165,6 +168,7 @@ export default function QuizPlayerScreen() {
   // ── Quiz question view ────────────────────────────────────
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title={quiz.title} showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 100 }}>
 

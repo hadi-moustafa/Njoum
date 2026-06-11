@@ -10,6 +10,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -19,7 +20,7 @@ interface EntryDetail  { id: string; content: string; created_at: string }
 type ViewMode = 'list' | 'compose' | 'read';
 
 export default function JournalScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc         = useQueryClient();
 
   const [view,    setView]    = useState<ViewMode>('list');
@@ -70,6 +71,7 @@ export default function JournalScreen() {
   if (view === 'compose') {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="مذكرة جديدة" showBack onBack={() => setView('list')} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
@@ -101,6 +103,7 @@ export default function JournalScreen() {
   if (view === 'read' && reading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader
           title={new Date(reading.created_at).toLocaleDateString('ar-LB', { dateStyle: 'medium' })}
           showBack onBack={() => { setView('list'); setReading(null); }}
@@ -124,6 +127,7 @@ export default function JournalScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="يومياتي" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

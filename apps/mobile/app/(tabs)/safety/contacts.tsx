@@ -9,13 +9,14 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, Radius, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
 interface Contact { id: string; name: string; phone: string; relationship?: string; notify_order: number; notify_on_sos: boolean }
 
 export default function ContactsScreen() {
-  const { colors }  = useColorScheme();
+  const { isDark, colors }  = useColorScheme();
   const qc          = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState({ name: '', phone: '', relationship: '' });
@@ -83,6 +84,7 @@ export default function ContactsScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="جهات الاتصال الطارئة" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 100 }}>
 

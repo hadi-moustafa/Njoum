@@ -1,14 +1,23 @@
 import { View, StyleSheet, ViewProps } from 'react-native';
-import { Colors, Spacing, Radius } from '../../constants/theme';
+import { Radius, Spacing } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
 interface CardProps extends ViewProps { children: React.ReactNode }
 
 export function Card({ children, style, ...rest }: CardProps) {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   return (
     <View
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, style]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? colors.card   : colors.surface,
+          borderColor:     isDark ? '#2C1C48'      : '#F0E4E0',
+          shadowColor:     isDark ? '#A480FF'      : '#000',
+          shadowOpacity:   isDark ? 0.12           : 0.05,
+        },
+        style,
+      ]}
       {...rest}
     >
       {children}
@@ -18,14 +27,12 @@ export function Card({ children, style, ...rest }: CardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius:  Radius.md,
+    borderRadius:  Radius.lg,
     borderWidth:   1,
     padding:       Spacing.md,
     marginBottom:  Spacing.sm,
-    shadowColor:   '#000',
-    shadowOffset:  { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius:  4,
+    shadowOffset:  { width: 0, height: 2 },
+    shadowRadius:  8,
     elevation:     2,
   },
 });

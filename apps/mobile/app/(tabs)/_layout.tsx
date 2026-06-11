@@ -1,29 +1,64 @@
-// ============================================================
-// Tab Navigator Layout
-// Bottom tabs: Home, Community, Safety, Wellness, Profile
-// SOS button floats above the tab bar on every tab.
-// ============================================================
-import { useEffect } from 'react';
+// Tab navigator with full dark/light theme support.
+// Dark mode → golden star-glow pill active indicator.
+// Light mode → rose-pink dot active indicator.
+// Uses only React Native's built-in Animated (not Reanimated) for compatibility.
+import { useEffect, useRef } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SOSButton } from '../../components/SOSButton';
-import { supabase } from '../../services/supabase';
-import { Colors, TAB_BAR_HEIGHT, FontSize } from '../../constants/theme';
+import { SOSButton }         from '../../components/SOSButton';
+import { supabase }          from '../../services/supabase';
+import { useColorScheme }    from '../../hooks/useColorScheme';
+import { strings }           from '../../constants/i18n';
+import { TAB_BAR_HEIGHT, FontSize } from '../../constants/theme';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+// ── Custom animated tab icon ──────────────────────────────────
+function TabIcon({
+  emoji, focused, isDark,
+}: {
+  emoji: string;
+  focused: boolean;
+  isDark: boolean;
+}) {
+  const scale  = useRef(new Animated.Value(1)).current;
+  const glowOp = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: focused ? 1.18 : 1,
+      friction: 8,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+    Animated.timing(glowOp, {
+      toValue: focused ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [focused]);
+
   return (
-    <Text style={{ fontSize: focused ? 26 : 22, opacity: focused ? 1 : 0.5 }}>
-      {emoji}
-    </Text>
+    <View style={styles.tabIconWrap}>
+      {/* Active bar indicator */}
+      {isDark ? (
+        <Animated.View style={[styles.starGlowPill, { opacity: glowOp }]} />
+      ) : (
+        <Animated.View style={[styles.roseDot, { opacity: glowOp }]} />
+      )}
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      </Animated.View>
+    </View>
   );
 }
 
+// ── Layout ────────────────────────────────────────────────────
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const insets                   = useSafeAreaInsets();
+  const router                   = useRouter();
+  const { isDark, colors, lang } = useColorScheme();
+  const s                        = strings[lang];
 
-  // Redirect to sign-in when the Supabase session is revoked
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
@@ -38,16 +73,15 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor:   Colors.primary,
-          tabBarInactiveTintColor: Colors.textMuted,
+          tabBarActiveTintColor:   isDark ? '#E8C86A' : '#B5586A',
+          tabBarInactiveTintColor: isDark ? '#9B89C4' : '#8A6070',
           tabBarStyle: {
             height:            TAB_BAR_HEIGHT + insets.bottom,
             paddingBottom:     insets.bottom + 8,
             paddingTop:        8,
-            backgroundColor:   Colors.surface,
-            borderTopColor:    Colors.border,
+            backgroundColor:   isDark ? '#120B20' : '#FFFFFF',
+            borderTopColor:    isDark ? '#2C1C48' : '#E8D5D0',
             borderTopWidth:    1,
-            // Reserve centre slot for the SOS button — make it wider
             paddingHorizontal: 8,
           },
           tabBarLabelStyle: {
@@ -60,48 +94,55 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'الرئيسية',
-            tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+            title: s.home,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon emoji={isDark ? '🌙' : '🏠'} focused={focused} isDark={isDark} />
+            ),
           }}
         />
         <Tabs.Screen
           name="community"
           options={{
-            title: 'المجتمع',
-            tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
+            title: s.communityTab,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon emoji="💬" focused={focused} isDark={isDark} />
+            ),
           }}
         />
-        {/* Safety section — accessible from home tiles, not a primary tab */}
+        {/* Safety — accessed from home tiles, not a primary tab */}
         <Tabs.Screen
           name="safety"
           options={{ href: null }}
         />
-        {/* Centre empty slot — SOS button floats here */}
+        {/* Centre slot reserved for the floating SOS button */}
         <Tabs.Screen
           name="sos-placeholder"
           options={{
             title: '',
-            tabBarIcon: () => <View style={styles.sosSlot} />,
             tabBarButton: () => <View style={styles.sosSlotContainer} />,
           }}
         />
         <Tabs.Screen
           name="wellness"
           options={{
-            title: 'الصحة',
-            tabBarIcon: ({ focused }) => <TabIcon emoji="🌸" focused={focused} />,
+            title: s.wellnessTab,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon emoji="🌸" focused={focused} isDark={isDark} />
+            ),
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'حسابي',
-            tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+            title: s.profileTab,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon emoji="👤" focused={focused} isDark={isDark} />
+            ),
           }}
         />
       </Tabs>
 
-      {/* SOS button — renders above every tab */}
+      {/* SOS button floats above every tab */}
       <SOSButton />
     </View>
   );
@@ -109,11 +150,38 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  sosSlot: {
-    width:  64,
-    height: 64,
+  sosSlotContainer: { flex: 1 },
+
+  tabIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: 44,
+    height: 36,
+    gap: 2,
   },
-  sosSlotContainer: {
-    flex: 1,
+
+  // Dark mode: golden pill at top of icon
+  starGlowPill: {
+    position: 'absolute',
+    top: 0,
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#E8C86A',
+    shadowColor: '#E8C86A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+
+  // Light mode: rose dot at top
+  roseDot: {
+    position: 'absolute',
+    top: 0,
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#B5586A',
   },
 });

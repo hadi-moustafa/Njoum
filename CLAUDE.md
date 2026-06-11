@@ -423,10 +423,13 @@ GET    /api/v1/events/:id
 
 GET    /api/v1/mentor/available
 GET    /api/v1/mentor/my
+GET    /api/v1/mentor/my/feed        # girl gets events + activities posted by her active mentor
 GET    /api/v1/mentor/mentees
-POST   /api/v1/mentor/request
+POST   /api/v1/mentor/request        # body: { mentor_id, message? } — girl picks a specific mentor
 PATCH  /api/v1/mentor/:id/accept
 PATCH  /api/v1/mentor/:id/end
+POST   /api/v1/mentor/events         # mentor creates event (role-gated)
+POST   /api/v1/mentor/activities     # mentor creates scout activity (role-gated)
 
 GET    /api/v1/scouts/my-completions
 POST   /api/v1/scouts/complete
@@ -746,27 +749,82 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 
 - Phase 7 complete — Mobile API wiring, new screens, SOS shake, scouts completion, web quiz editor, events management
 - SOS feature complete (2026-06-10) — live location, Twilio SMS, Realtime broadcast, tracking page, admin SOS dashboard
-- Feature-by-feature redesign in progress (2026-06-07) — UI overhaul + Supabase wiring per feature
+- Whole-app redesign complete (2026-06-11) — star/gradient design language from home screen applied to all 25+ screens
+- Phase 8 complete (2026-06-11) — SOS OpenStreetMap/WebView tracking (free, no API key), AsyncStorage offline cache, cycle reminder cron, certificate download, real video player, trigger verification
+- Mentor system overhaul complete (2026-06-11) — girl chooses specific mentor, mentor content feed, mentor-role mobile dashboard, web admin mentors page
+
+#### Phase 8 file inventory (2026-06-11)
+
+| Feature | Files |
+|---|---|
+| SOS live tracking screen | `apps/mobile/app/sos-tracking/[id].tsx` (NEW — WebView + Leaflet.js + OpenStreetMap (free, no key), Supabase Realtime subscribe, signal-age indicator, "I'm Safe" for SOS sender) |
+| SOSButton navigation | `apps/mobile/components/SOSButton.tsx` (added `router.push('/sos-tracking/:id')` after SOS fires) |
+| OpenStreetMap/WebView config | `apps/mobile/package.json` (`react-native-webview@~13.15.0`, removed `react-native-maps`), `apps/mobile/app.json` (removed react-native-maps plugin, added expo-video plugin) |
+| MMKV offline caching | `apps/mobile/services/queryPersister.ts` (NEW — AsyncStorage + `createAsyncStoragePersister`, avoids NitroModules requirement of MMKV v4), `apps/mobile/app/_layout.tsx` (`PersistQueryClientProvider`, 7-day maxAge), hotlines.tsx / selfdefence.tsx (gcTime extended). New packages: `@tanstack/react-query-persist-client`, `@tanstack/query-async-storage-persister` |
+| Real video player | `apps/mobile/app/(tabs)/safety/selfdefence.tsx` (replaced placeholder with `expo-video@~3.0.16` `VideoView` + `useVideoPlayer`, native controls, fullscreen, PiP). |
+| Badge certificate download | `apps/mobile/app/(tabs)/profile.tsx` (📄 button on badge card, `expo-file-system` + `expo-sharing`). |
+| Cycle reminder cron job | `packages/api/src/services/cycleReminderJob.ts` (NEW — `node-cron` daily 08:00 UTC, FCM push + audit log), `packages/api/src/index.ts` (wired on server start). New package: `node-cron@^3.0.3` |
+| Role sync trigger verification | `supabase/migrations/20260611000001_verify_role_sync_trigger.sql` (NEW — `verify_role_sync_config()` helper, trigger presence check, fallback docs) |
+
+#### Mentor system overhaul (2026-06-11)
+
+Girls choose a specific mentor (not auto-assigned). Active mentors can post events and scout activities visible to their mentees. Mentor-role mobile users get a dedicated dashboard.
+
+**Bug fixes:**
+- `GET /mentor/my` was returning 500 because controller selected `assigned_at` — actual DB column is `started_at`. Fixed throughout controller.
+- Events controller used `organizer_id`, `is_online`, `url` — actual columns are `created_by`, `is_virtual`, `join_url`. Full rewrite.
+
+| Feature | Files |
+|---|---|
+| DB migration | `supabase/migrations/20260611000002_mentor_and_activities_schema.sql` (NEW — `activities.created_by UUID FK`, `mentor_assignments.message TEXT`, 5 RLS policies for mentor content) |
+| Mentor controller (full rewrite) | `packages/api/src/controllers/mentor.ts` — fixed `started_at`, `requestMentor` now requires `{ mentor_id }` (girl picks specific mentor), new `getMyMentorFeed` (events + activities by mentor), new `createMentorEvent`, new `createMentorActivity` |
+| Mentor routes | `packages/api/src/routes/mentor.ts` — added `GET /my/feed`, `POST /events`, `POST /activities` |
+| Events controller (fix) | `packages/api/src/controllers/events.ts` — corrected column names, added `deleted_at` null filter |
+| Mobile mentor screen | `apps/mobile/app/(tabs)/community/mentor.tsx` — full rewrite: browse available mentors with individual "Request" button, inline message form, pending/active status card, mentor feed (events + activities) when active |
+| Mobile mentor dashboard | `apps/mobile/app/mentor-dashboard/index.tsx` (NEW — mentor-only screen; Mentees tab: pending requests with accept/reject, active girls with end button; Post tab: create event form with all fields, create scout activity form, mode switcher) |
+| Root layout | `apps/mobile/app/_layout.tsx` — added `mentor-dashboard/index` stack screen |
+| Profile screen | `apps/mobile/app/(tabs)/profile.tsx` — added mentor dashboard banner (only shown when `profile.role === 'mentor'`) with route to `/mentor-dashboard` |
+| Web admin mentors page | `apps/web/app/dashboard/mentors/page.tsx` (NEW — assignment table with status tabs, end action, mentor-posted events list, mentor-created activities list) |
+| Web EndAssignmentButton | `apps/web/app/dashboard/mentors/EndAssignmentButton.tsx` (NEW — client component using `useTransition`) |
+| Web server action | `apps/web/app/actions/mentors.ts` (NEW — `endAssignment(id)` sets status=ended, revalidates path) |
+| Web sidebar | `apps/web/components/Sidebar.tsx` — added Mentors (🤝) nav item |
+
+#### Whole-app redesign file inventory (2026-06-11)
+
+**Design language applied to all screens:** StarField background in dark mode, gradient primary buttons (`LinearGradient #B5586A→#7A4E7A`), themed Card borders (`#2C1C48` dark / `#F0E4E0` light), circular back button, `Radius.lg=22` cards, RTL flex rows.
+
+**Shared components updated:**
+- `components/ui/Card.tsx` — theme-aware border/shadow/bg
+- `components/ui/Button.tsx` — gradient primary, added `outline` variant
+- `components/ui/ScreenHeader.tsx` — circular back button, star decorations in dark mode, `onBack?` prop
+
+**Hub screens fully redesigned (new tile/card components):**
+- `app/(auth)/sign-in.tsx`, `sign-up.tsx`, `verify.tsx` — StarField, gradient logo, hero illustration, RTL
+- `app/(tabs)/safety/index.tsx` — `SafetyTile` with per-category `LinearGradient`, spring press, illustration
+- `app/(tabs)/wellness/index.tsx` — `WellnessTile` same pattern, illustration
+- `app/(tabs)/community/index.tsx` — `GroupCard` + `QuickNavBtn` with gradient bg, illustration
+
+**Light-touch design applied (StarField only):**
 
 #### Feature redesign file inventory (2026-06-07)
 
 | Feature | Status | Mobile files | Web manages |
 |---|---|---|---|
-| F1 Home | ✅ Done | `apps/mobile/app/(tabs)/index.tsx` (redesign: LinearGradient affirmation from `content_articles`, mood check-in with Supabase+local fallback, tile grid), `apps/mobile/constants/theme.ts` (Spacing, Radius, FontWeight tokens), `apps/mobile/app/(tabs)/_layout.tsx` (safety tab declared with href:null), `apps/mobile/app/_layout.tsx` (article/quiz/legal screens declared), `apps/mobile/package.json` (expo-linear-gradient ~14.0.2 added) | `/dashboard/analytics` (mood trend already there) |
+| F1 Home | ✅ Done (v2 redesign 2026-06-11) | **New files:** `components/home/StarField.tsx` (25 twinkling stars + shooting stars, RN Animated), `components/home/QuoteCarousel.tsx` (15 quotes, 3-min auto-advance, fade+slide transition, dot nav), `components/home/MoodMeter.tsx` (5 gradient mood orbs with Reanimated spring+glow, Supabase+local persistence), `components/home/MiniCalendar.tsx` (7-day week strip + 5 mock scout events with colored bars), `components/home/QuickAccessGrid.tsx` (8-tile 2-col grid, gradient cards, Reanimated press spring) `constants/i18n.ts` (15 quotes + all AR/EN strings). **Updated:** `constants/theme.ts` (NightColors + DayColors objects with symmetrical keys), `hooks/useColorScheme.ts` (now returns `{ isDark, colors: NightColors\|DayColors, lang }`), `app/(tabs)/index.tsx` (full redesign: header with time-greeting + theme/lang toggles, StarField background in dark mode, all home components), `app/(tabs)/_layout.tsx` (theme-aware tab bar: golden star-glow pill in dark, rose dot in light; animated tab icons) | `/dashboard/analytics` |
 | Auth | ✅ Done | `app/index.tsx` (auth gate: session check → tabs or sign-in), `app/(auth)/sign-in.tsx` (email+password login), `app/(auth)/sign-up.tsx` (3-step: account/profile/safety), `app/(auth)/verify.tsx` (in-app OTP — code shown in dev mode box, cleared after verify), `store/signupStore.ts` (temp store for signup data+OTP), `supabase/migrations/20260607000001_users_self_rls.sql` (self-insert/update policies on users table) | `/dashboard/users` (already there) |
 | F2 SOS Button | ✅ Done | `apps/mobile/components/SOSButton.tsx` (GPS location fetch before fire, Supabase Realtime broadcast every 5 s, call-contact prompt via `Linking`), `apps/mobile/services/sosRealtime.ts` (broadcast helper) | `/dashboard/sos` |
-| F3 Emergency Contacts | 🔲 | — | — |
-| F4 Crisis Hotlines | 🔲 | — | — |
-| F5 Journey Tracker | 🔲 | — | — |
-| F6 Mood Tracker | 🔲 | — | — |
-| F7 Journal | 🔲 | — | — |
-| F8 Cycle Tracker | 🔲 | — | — |
-| F9 Community Feed | 🔲 | — | — |
-| F10 Events | 🔲 | — | — |
-| F11 Safety Articles | 🔲 | — | — |
-| F12 Self-Defence | 🔲 | — | — |
-| F13 Legal Guides | 🔲 | — | — |
-| F14 Scouts | 🔲 | — | — |
+| F3 Emergency Contacts | ✅ Design applied | `safety/contacts.tsx` (StarField) | — |
+| F4 Crisis Hotlines | ✅ Design applied | `safety/hotlines.tsx` (StarField) | — |
+| F5 Journey Tracker | ✅ Design applied | `safety/journey.tsx` (StarField) | — |
+| F6 Mood Tracker | ✅ Design applied | `wellness/mood.tsx` (StarField) | — |
+| F7 Journal | ✅ Design applied | `wellness/journal.tsx` (StarField — all 3 states) | — |
+| F8 Cycle Tracker | ✅ Design applied | `wellness/cycle.tsx` (StarField) | — |
+| F9 Community Feed | ✅ Design applied | `community/feed.tsx` (StarField) | — |
+| F10 Events | ✅ Design applied | `community/events.tsx` (StarField) | — |
+| F11 Safety Articles | ✅ Design applied | `safety/learn.tsx` + `article/[id].tsx` + `quiz/[id].tsx` (StarField) | — |
+| F12 Self-Defence | ✅ Design applied | `safety/selfdefence.tsx` (StarField) | — |
+| F13 Legal Guides | ✅ Design applied | `safety/legal.tsx` + `legal/[id].tsx` (StarField) | — |
+| F14 Scouts | ✅ Design applied | `safety/scouts.tsx` (StarField) | — |
 | F15 Profile | ✅ Done | `app/(tabs)/profile.tsx` (loads user data from Supabase directly, reset password via `supabase.auth.updateUser`, dark/light/system theme switcher, AR/EN language switcher with inline translations), `store/appStore.ts` (persisted theme+language via AsyncStorage), `hooks/useColorScheme.ts` (reads appStore.theme instead of system-only) | `/dashboard/users` |
 
 #### SDK 54 Package Alignment Fix (2026-06-07)

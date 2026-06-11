@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -55,7 +56,7 @@ function getDaysUntil(dateStr: string): number {
 }
 
 export default function EventsScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
 
   const { data, isLoading } = useQuery({
     queryKey: ['events'],
@@ -67,6 +68,7 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="الفعاليات" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -30,7 +31,7 @@ function minutesUntil(isoStr: string): number {
 }
 
 export default function JourneyScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc         = useQueryClient();
   const [dest, setDest]    = useState('');
   const [minutes, setMins] = useState('30');
@@ -70,6 +71,7 @@ export default function JourneyScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="تتبّع رحلتي" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

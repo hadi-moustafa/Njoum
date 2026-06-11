@@ -12,12 +12,16 @@ import {
   I18nManager,
 } from 'react-native';
 import { SafeAreaView }   from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter }      from 'expo-router';
+import * as FileSystem    from 'expo-file-system';
+import * as Sharing       from 'expo-sharing';
 import { supabase }       from '../../services/supabase';
 import { useSignupStore } from '../../store/signupStore';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { useAppStore }    from '../../store/appStore';
+import { StarField }      from '../../components/home/StarField';
 import {
   Colors, Spacing, FontSize, FontWeight, Radius, Shadow, TAB_BAR_HEIGHT,
 } from '../../constants/theme';
@@ -179,6 +183,43 @@ export default function ProfileScreen() {
   // Sign-out
   const [signingOut, setSigningOut] = useState(false);
 
+  // Certificate download
+  const [downloadingCertId, setDownloadingCertId] = useState<string | null>(null);
+
+  const downloadCertificate = async (badgeId: string) => {
+    if (downloadingCertId) return;
+    setDownloadingCertId(badgeId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('No session');
+
+      const apiUrl   = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const fileUri  = `${FileSystem.cacheDirectory}njoum-badge-${badgeId}.pdf`;
+
+      const result = await FileSystem.downloadAsync(
+        `${apiUrl}/badges/${badgeId}/certificate`,
+        fileUri,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
+
+      if (result.status !== 200) throw new Error('Download failed');
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(result.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'شهادة الإنجاز — نجوم',
+        });
+      } else {
+        Alert.alert('تم التنزيل', 'تم حفظ الشهادة في ذاكرة الجهاز.');
+      }
+    } catch {
+      Alert.alert('خطأ', 'تعذّر تنزيل الشهادة. تأكدي من الاتصال بالإنترنت وحاولي مجدداً.');
+    } finally {
+      setDownloadingCertId(null);
+    }
+  };
+
   const { user, profile } = data ?? {};
 
   const displayName = profile?.full_name
@@ -267,15 +308,21 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: TAB_BAR_HEIGHT + 90 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Avatar & Identity ── */}
         <View style={styles.heroSection}>
-          <View style={[styles.avatar, Shadow.lg]}>
+          <LinearGradient
+            colors={isDark ? ['#B5586A', '#7A4E7A', '#A480FF'] : ['#B5586A', '#7A4E7A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.avatar, Shadow.lg]}
+          >
             <Text style={styles.avatarLetter}>{avatarLetter}</Text>
-          </View>
+          </LinearGradient>
           <Text style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
           {profile?.age_range && (
             <Text style={[styles.metaText, { color: colors.textMuted }]}>
@@ -312,6 +359,18 @@ export default function ProfileScreen() {
                   <Text style={[styles.badgeDate, { color: colors.textMuted }]}>
                     {new Date(ub.earned_at).toLocaleDateString(isRTL ? 'ar-LB' : 'en-GB', { month: 'short', year: 'numeric' })}
                   </Text>
+                  {/* Download PDF certificate */}
+                  <Pressable
+                    style={[styles.certBtn, { opacity: downloadingCertId === ub.badge?.id ? 0.5 : 1 }]}
+                    onPress={() => ub.badge?.id && downloadCertificate(ub.badge.id)}
+                    disabled={!!downloadingCertId}
+                    accessibilityLabel={`تنزيل شهادة ${ub.badge?.name}`}
+                  >
+                    {downloadingCertId === ub.badge?.id
+                      ? <ActivityIndicator color={Colors.primary} size={10} />
+                      : <Text style={styles.certBtnText}>📄</Text>
+                    }
+                  </Pressable>
                 </View>
               ))}
             </ScrollView>
@@ -320,7 +379,7 @@ export default function ProfileScreen() {
 
         {/* ── Account Info ── */}
         <SectionTitle>{t.account}</SectionTitle>
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: isDark ? '#2C1C48' : '#F0E4E0', borderWidth: 1 }]}>
           <InfoRow label={t.email}   value={user?.email ?? '—'} />
           <InfoRow label={t.country} value={profile?.country ?? ''} />
           <InfoRow label={t.ageRange} value={profile?.age_range ?? ''} />
@@ -339,7 +398,7 @@ export default function ProfileScreen() {
 
         {/* ── App Settings ── */}
         <SectionTitle>{t.settings}</SectionTitle>
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: isDark ? '#2C1C48' : '#F0E4E0', borderWidth: 1 }]}>
 
           {/* Theme */}
           <View style={styles.settingRow}>
@@ -399,7 +458,7 @@ export default function ProfileScreen() {
 
         {/* ── Change Password ── */}
         <SectionTitle>{t.changePassword}</SectionTitle>
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: isDark ? '#2C1C48' : '#F0E4E0', borderWidth: 1 }]}>
           {pwdSuccess && (
             <View style={styles.successBox}>
               <Text style={styles.successText}>{t.pwdSuccess}</Text>
@@ -474,6 +533,33 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {/* ── Mentor Dashboard — only visible to mentor-role users ── */}
+        {profile?.role === 'mentor' && (
+          <>
+            <SectionTitle>{isRTL ? 'لوحة المرشدة' : 'Mentor Dashboard'}</SectionTitle>
+            <Pressable
+              style={({ pressed }) => [
+                styles.mentorDashBtn,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={() => router.push('/mentor-dashboard' as any)}
+            >
+              <Text style={{ fontSize: 28 }}>🌟</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mentorDashTitle}>
+                  {isRTL ? 'لوحة المرشدة' : 'Mentor Dashboard'}
+                </Text>
+                <Text style={styles.mentorDashSub}>
+                  {isRTL
+                    ? 'إدارة المتدربات، نشر الفعاليات والأنشطة'
+                    : 'Manage mentees, post events & activities'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 20, color: Colors.depth }}>›</Text>
+            </Pressable>
+          </>
+        )}
 
         {/* ── Quick Actions ── */}
         <SectionTitle>{t.quickActions}</SectionTitle>
@@ -559,6 +645,31 @@ const styles = StyleSheet.create({
     fontSize:   FontSize.sm,
     fontWeight: FontWeight.semibold,
     color:      Colors.primary,
+  },
+
+  // Mentor dashboard banner
+  mentorDashBtn: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            Spacing.md,
+    padding:        Spacing.md,
+    borderRadius:   Radius.lg,
+    backgroundColor: Colors.depth + '15',
+    borderWidth:    1.5,
+    borderColor:    Colors.depth + '40',
+    marginBottom:   Spacing.md,
+  },
+  mentorDashTitle: {
+    fontSize:   FontSize.md,
+    fontWeight: FontWeight.bold,
+    color:      Colors.depth,
+    textAlign:  'right',
+  },
+  mentorDashSub: {
+    fontSize:  FontSize.xs,
+    color:     Colors.depth + 'AA',
+    textAlign: 'right',
+    marginTop: 2,
   },
 
   // Section title
@@ -696,6 +807,16 @@ const styles = StyleSheet.create({
   },
   badgeName: { fontSize: FontSize.xs, textAlign: 'center', fontWeight: FontWeight.semibold },
   badgeDate: { fontSize: 10 },
+  certBtn: {
+    marginTop: 4,
+    width:     28,
+    height:    28,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primary + '14',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  certBtnText: { fontSize: 14 },
 
   // Quick actions
   actionsGrid: {

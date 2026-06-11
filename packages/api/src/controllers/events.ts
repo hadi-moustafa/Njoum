@@ -1,14 +1,15 @@
 // ============================================================
 // Events Controller
-// Actual schema: url (not join_url), is_online (not is_virtual),
-// organizer_id (not created_by), country/region (no location).
-// No deleted_at column.
+// Actual schema columns: created_by, is_virtual, join_url, location
+// (not organizer_id / is_online / url)
 // ============================================================
 import { Request, Response, NextFunction } from 'express';
 import { supabaseAdmin } from '../models/supabase';
 import { ok, paginated } from '../services/response';
 import { AppError } from '../middleware/errorHandler';
 import { DEFAULT_PAGE_SIZE } from '@njoum/shared';
+
+const EVENT_COLS = 'id, title, description, event_type, starts_at, ends_at, location, is_virtual, join_url, created_by, created_at';
 
 // ── GET /api/v1/events ────────────────────────────────────────
 export async function listEvents(req: Request, res: Response, next: NextFunction) {
@@ -21,18 +22,16 @@ export async function listEvents(req: Request, res: Response, next: NextFunction
 
     let query = supabaseAdmin
       .from('events')
-      .select('id, title, description, event_type, starts_at, ends_at, country, region, is_online, url, created_at', { count: 'exact' })
+      .select(EVENT_COLS, { count: 'exact' })
+      .is('deleted_at', null)
       .order('starts_at', { ascending: true })
       .range(from, from + limit - 1);
 
-    if (upcoming) {
-      query = query.gte('starts_at', new Date().toISOString());
-    }
-    if (type) query = query.eq('event_type', type);
+    if (upcoming) query = query.gte('starts_at', new Date().toISOString());
+    if (type)     query = query.eq('event_type', type);
 
     const { data, error, count } = await query;
     if (error) throw new AppError(500, 'DB_ERROR', error.message);
-
     paginated(res, data ?? [], page, count ?? 0, limit);
   } catch (err) { next(err); }
 }
@@ -42,8 +41,9 @@ export async function getEvent(req: Request, res: Response, next: NextFunction) 
   try {
     const { data, error } = await supabaseAdmin
       .from('events')
-      .select('id, title, description, event_type, starts_at, ends_at, country, region, is_online, url, created_at')
-      .eq('id', req.params.id!)
+      .select(EVENT_COLS)
+      .eq('id', req.params['id']!)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) throw new AppError(404, 'NOT_FOUND', 'Event not found.');

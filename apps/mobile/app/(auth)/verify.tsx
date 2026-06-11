@@ -1,9 +1,5 @@
 // ============================================================
-// Email Verification Screen
-// Uses Supabase Auth verifyOtp (type: 'signup').
-// Supabase emails a 6-digit code to the user on sign-up.
-// After success the session is auto-stored in AsyncStorage
-// so the user never has to log in again on the same device.
+// Email Verification Screen — star/sun theme
 // ============================================================
 import { useRef, useState, useEffect } from 'react';
 import {
@@ -13,15 +9,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../services/supabase';
 import { useSignupStore } from '../../store/signupStore';
-import {
-  Colors, Spacing, FontSize, FontWeight, Radius, Shadow,
-} from '../../constants/theme';
+import { useColorScheme } from '../../hooks/useColorScheme';
+import { StarField } from '../../components/home/StarField';
+import { Spacing, FontSize, FontWeight, Radius } from '../../constants/theme';
 
 export default function VerifyScreen() {
-  const router = useRouter();
-  const signup = useSignupStore();
+  const router                   = useRouter();
+  const signup                   = useSignupStore();
+  const { isDark, colors, lang } = useColorScheme();
+  const isRTL                    = lang === 'ar';
 
   const [digits,    setDigits]    = useState(['', '', '', '', '', '', '', '']);
   const [error,     setError]     = useState('');
@@ -43,7 +42,6 @@ export default function VerifyScreen() {
   const enteredCode = digits.join('');
   const isComplete  = enteredCode.length === 8;
 
-  // ── OTP box handlers ─────────────────────────────────────────
   const handleDigit = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
     const next  = [...digits];
@@ -64,14 +62,10 @@ export default function VerifyScreen() {
     }
   };
 
-  // ── Resend ───────────────────────────────────────────────────
   const handleResend = async () => {
     setResending(true);
     setError('');
-    const { error: e } = await supabase.auth.resend({
-      type:  'signup',
-      email: signup.email,
-    });
+    const { error: e } = await supabase.auth.resend({ type: 'signup', email: signup.email });
     setResending(false);
     if (e) {
       setError('تعذّر إعادة الإرسال. حاولي مرة أخرى.');
@@ -83,13 +77,11 @@ export default function VerifyScreen() {
     }
   };
 
-  // ── Verify ───────────────────────────────────────────────────
   const handleVerify = async () => {
     if (!isComplete || loading) return;
     setError('');
     setLoading(true);
 
-    // Verify OTP with Supabase — this confirms the account and returns a session
     const { data, error: e } = await supabase.auth.verifyOtp({
       email: signup.email,
       token: enteredCode,
@@ -104,8 +96,6 @@ export default function VerifyScreen() {
       return;
     }
 
-    // Session is now stored in AsyncStorage automatically by Supabase.
-    // Save the user profile to the `users` table.
     await supabase.from('users').upsert({
       id:        data.session.user.id,
       email:     signup.email,
@@ -116,34 +106,37 @@ export default function VerifyScreen() {
       safe_word: signup.safe_word || null,
     }, { onConflict: 'id' });
 
-    // Clear signup temp data (password is now unnecessary)
     signup.clear();
-
     setLoading(false);
-    // Replace the entire auth stack so Back can't return here
     router.replace('/(tabs)');
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {isDark && <StarField />}
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View style={styles.container}>
 
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
+            <LinearGradient
+              colors={['#B5586A', '#7A4E7A']}
+              style={styles.iconCircle}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
               <Text style={styles.iconText}>✉️</Text>
-            </View>
-            <Text style={styles.title}>التحقق من البريد الإلكتروني</Text>
-            <Text style={styles.subtitle}>
-              أرسلنا رمزاً مكوّناً من ٨ أرقام إلى{'\n'}
-              <Text style={styles.emailHighlight}>{signup.email}</Text>
+            </LinearGradient>
+            <Text style={[styles.title, { color: colors.text, textAlign: isRTL ? 'right' : 'left' }]}>
+              {isRTL ? 'التحقق من البريد الإلكتروني' : 'Verify Your Email'}
             </Text>
-            <Text style={styles.spamNote}>
-              لم يصلكِ الرمز؟ تحققي من مجلد الرسائل غير المرغوب فيها (Spam)
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              {isRTL ? 'أرسلنا رمزاً مكوّناً من ٨ أرقام إلى' : 'We sent an 8-digit code to'}{'\n'}
+              <Text style={[styles.emailHighlight, { color: isDark ? colors.starGold : colors.primary }]}>{signup.email}</Text>
+            </Text>
+            <Text style={[styles.spamNote, { color: colors.textMuted }]}>
+              {isRTL ? 'لم يصلكِ الرمز؟ تحققي من مجلد Spam' : "Didn't receive it? Check your Spam folder"}
             </Text>
           </View>
 
@@ -153,7 +146,15 @@ export default function VerifyScreen() {
               <TextInput
                 key={i}
                 ref={el => { refs.current[i] = el; }}
-                style={[styles.otpBox, !!digit && styles.otpBoxFilled]}
+                style={[styles.otpBox, {
+                  borderColor:     digit
+                    ? (isDark ? colors.starPurple : colors.primary)
+                    : (isDark ? '#2C1C48' : '#E8D5D0'),
+                  backgroundColor: digit
+                    ? (isDark ? colors.primary + '20' : colors.primary + '10')
+                    : (isDark ? colors.surface : colors.background),
+                  color:           colors.text,
+                }]}
                 value={digit}
                 onChangeText={(v) => handleDigit(i, v)}
                 onKeyPress={({ nativeEvent }) => handleKeyPress(i, nativeEvent.key)}
@@ -168,7 +169,7 @@ export default function VerifyScreen() {
           {/* Error */}
           {!!error && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
+              <Text style={[styles.errorText, { textAlign: isRTL ? 'right' : 'left' }]}>{error}</Text>
             </View>
           )}
 
@@ -183,29 +184,36 @@ export default function VerifyScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.btn,
-              (!isComplete || loading) && styles.btnDisabled,
-              pressed && isComplete && styles.btnPressed,
+              { opacity: (!isComplete || loading || pressed) ? 0.65 : 1 },
             ]}
             onPress={handleVerify}
             disabled={!isComplete || loading}
           >
+            <LinearGradient
+              colors={isComplete ? ['#B5586A', '#7A4E7A'] : ['#999', '#777']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
             {loading
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnText}>تحقق</Text>
+              : <Text style={styles.btnText}>{isRTL ? 'تحقق' : 'Verify'}</Text>
             }
           </Pressable>
 
           {/* Resend */}
           <View style={styles.resendRow}>
             {countdown > 0 ? (
-              <Text style={styles.countdownText}>
-                إعادة الإرسال بعد {countdown} ث
+              <Text style={[styles.countdownText, { color: colors.textMuted }]}>
+                {isRTL ? `إعادة الإرسال بعد ${countdown} ث` : `Resend in ${countdown}s`}
               </Text>
             ) : (
               <Pressable onPress={handleResend} disabled={resending}>
                 {resending
-                  ? <ActivityIndicator color={Colors.primary} size="small" />
-                  : <Text style={styles.resendLink}>إعادة إرسال الرمز</Text>
+                  ? <ActivityIndicator color={colors.primary} size="small" />
+                  : <Text style={[styles.resendLink, { color: isDark ? colors.starGold : colors.primary }]}>
+                      {isRTL ? 'إعادة إرسال الرمز' : 'Resend code'}
+                    </Text>
                 }
               </Pressable>
             )}
@@ -213,7 +221,9 @@ export default function VerifyScreen() {
 
           {/* Back */}
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← العودة لتعديل البيانات</Text>
+            <Text style={[styles.backText, { color: colors.textMuted }]}>
+              {isRTL ? '← العودة لتعديل البيانات' : '← Edit your details'}
+            </Text>
           </Pressable>
 
         </View>
@@ -223,7 +233,7 @@ export default function VerifyScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:      { flex: 1, backgroundColor: Colors.background },
+  safe:      { flex: 1 },
   container: {
     flex:           1,
     padding:        Spacing.lg,
@@ -232,111 +242,81 @@ const styles = StyleSheet.create({
     gap:            Spacing.lg,
   },
 
-  header:          { alignItems: 'center', gap: Spacing.sm },
+  header:    { alignItems: 'center', gap: Spacing.sm },
   iconCircle: {
-    width:           72,
-    height:          72,
-    borderRadius:    Radius.full,
-    backgroundColor: Colors.primaryLight,
-    alignItems:      'center',
-    justifyContent:  'center',
+    width: 72, height: 72, borderRadius: Radius.xl,
+    alignItems: 'center', justifyContent: 'center',
   },
-  iconText:        { fontSize: 34 },
+  iconText:  { fontSize: 34 },
   title: {
     fontSize:   FontSize.xxl,
     fontWeight: FontWeight.bold,
-    color:      Colors.text,
     textAlign:  'center',
   },
   subtitle: {
     fontSize:   FontSize.md,
-    color:      Colors.textMuted,
     textAlign:  'center',
     lineHeight: 26,
   },
-  emailHighlight: {
-    color:      Colors.primary,
-    fontWeight: FontWeight.bold,
-  },
+  emailHighlight: { fontWeight: FontWeight.bold },
   spamNote: {
     fontSize:   FontSize.xs,
-    color:      Colors.textLight,
     textAlign:  'center',
     lineHeight: 18,
     marginTop:  Spacing.xs,
   },
 
-  // OTP
   otpRow: {
-    flexDirection:   'row',
-    gap:             6,
-    justifyContent:  'center',
-    alignSelf:       'stretch',
+    flexDirection:     'row',
+    gap:               6,
+    justifyContent:    'center',
+    alignSelf:         'stretch',
     paddingHorizontal: Spacing.md,
   },
   otpBox: {
-    flex:            1,
-    maxWidth:        42,
-    height:          54,
-    borderRadius:    Radius.md,
-    borderWidth:     1.5,
-    borderColor:     Colors.border,
-    backgroundColor: Colors.surface,
-    fontSize:        FontSize.lg,
-    fontWeight:      FontWeight.bold,
-    color:           Colors.text,
-    ...Shadow.sm,
-  },
-  otpBoxFilled: {
-    borderColor:     Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    flex:       1,
+    maxWidth:   42,
+    height:     54,
+    borderRadius:  Radius.md,
+    borderWidth:   1.5,
+    fontSize:   FontSize.lg,
+    fontWeight: FontWeight.bold,
   },
 
-  // Error / Success
   errorBox: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: 'rgba(229,62,62,0.1)',
     borderRadius:    Radius.sm,
     padding:         Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.emergency,
+    borderLeftColor: '#E53E3E',
     width:           '100%',
   },
-  errorText:   { fontSize: FontSize.sm, color: Colors.emergency, textAlign: 'right' },
+  errorText:   { fontSize: FontSize.sm, color: '#E53E3E' },
   successBox: {
-    backgroundColor: '#EEFFF4',
+    backgroundColor: 'rgba(56,161,105,0.1)',
     borderRadius:    Radius.sm,
     padding:         Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.success,
+    borderLeftColor: '#38A169',
     width:           '100%',
   },
-  successText: { fontSize: FontSize.sm, color: Colors.success, fontWeight: FontWeight.semibold, textAlign: 'right' },
+  successText: { fontSize: FontSize.sm, color: '#38A169', fontWeight: FontWeight.semibold, textAlign: 'right' },
 
-  // Button
   btn: {
-    backgroundColor: Colors.primary,
-    borderRadius:    Radius.md,
+    borderRadius:    Radius.lg,
     paddingVertical: Spacing.md,
     width:           '100%',
     alignItems:      'center',
     minHeight:       52,
     justifyContent:  'center',
-    ...Shadow.md,
+    overflow:        'hidden',
   },
-  btnDisabled: { backgroundColor: Colors.border },
-  btnPressed:  { opacity: 0.85 },
-  btnText: {
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color:      '#fff',
-  },
+  btnText: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: '#fff' },
 
-  // Resend
   resendRow:     { alignItems: 'center' },
-  resendLink:    { fontSize: FontSize.sm, color: Colors.primary, fontWeight: FontWeight.semibold },
-  countdownText: { fontSize: FontSize.sm, color: Colors.textMuted },
+  resendLink:    { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  countdownText: { fontSize: FontSize.sm },
 
-  // Back
   backBtn: { paddingVertical: Spacing.sm },
-  backText: { fontSize: FontSize.sm, color: Colors.textMuted },
+  backText: { fontSize: FontSize.sm },
 });

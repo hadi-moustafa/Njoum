@@ -58,7 +58,8 @@
           "locationAlwaysAndWhenInUsePermission": "Njoum needs your location to share it with emergency contacts during an SOS."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": false

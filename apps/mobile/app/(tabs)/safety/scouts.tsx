@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -45,7 +46,7 @@ const MODULE_EMOJIS: Record<string, string> = {
 };
 
 export default function ScoutsScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc         = useQueryClient();
   const [selected, setSelected] = useState<Activity | null>(null);
 
@@ -87,6 +88,7 @@ export default function ScoutsScreen() {
   return (
     <>
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="برنامج الكشافة" showBack />
         <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

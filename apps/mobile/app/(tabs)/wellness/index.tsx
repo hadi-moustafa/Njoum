@@ -1,59 +1,215 @@
 // ============================================================
-// Wellness Tab — main menu
+// Wellness Hub — gradient tiles with star/sun theme
 // ============================================================
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenHeader } from '../../../components/ui/ScreenHeader';
-import { Card } from '../../../components/ui/Card';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useColorScheme } from '../../../hooks/useColorScheme';
-import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
+import { StarField } from '../../../components/home/StarField';
+import { Illustration } from '../../../components/home/Illustration';
+import { Spacing, FontSize, FontWeight, Radius, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
-const MENU: { label: string; sub: string; emoji: string; route: string; color: string }[] = [
-  { label: 'مزاجي اليومي',    sub: 'تتبّعي حالتك النفسية يومياً',      emoji: '🌸', route: '/wellness/mood',    color: Colors.primary },
-  { label: 'يومياتي السرية',  sub: 'مساحتك الآمنة للتعبير الحر',       emoji: '📓', route: '/wellness/journal', color: Colors.depth   },
-  { label: 'دورتي الشهرية',   sub: 'تتبّع الدورة والتنبؤ بالموعد القادم', emoji: '🌙', route: '/wellness/cycle',   color: Colors.accent  },
+interface WellnessItem {
+  key:       string;
+  emoji:     string;
+  route:     string;
+  accent:    string;
+  dayGrad:   [string, string];
+  nightGrad: [string, string];
+}
+
+const ITEMS: WellnessItem[] = [
+  {
+    key:       'mood',
+    emoji:     '🌸',
+    route:     '/wellness/mood',
+    accent:    '#B5586A',
+    dayGrad:   ['#FFF0F6', '#FFE2EE'],
+    nightGrad: ['#2A0D18', '#1A0810'],
+  },
+  {
+    key:       'journal',
+    emoji:     '📓',
+    route:     '/wellness/journal',
+    accent:    '#7A4E7A',
+    dayGrad:   ['#F5EEFF', '#EDE0FF'],
+    nightGrad: ['#160A30', '#0E0620'],
+  },
+  {
+    key:       'cycle',
+    emoji:     '🌙',
+    route:     '/wellness/cycle',
+    accent:    '#C8956A',
+    dayGrad:   ['#FFFBEE', '#FFF5D6'],
+    nightGrad: ['#27200A', '#1A1505'],
+  },
 ];
 
+const LABELS: Record<string, { ar: string; en: string; sub_ar: string; sub_en: string }> = {
+  mood:    { ar: 'مزاجي اليومي',   en: 'Daily Mood',    sub_ar: 'تتبّعي حالتك النفسية يومياً',         sub_en: 'Track your mood every day'         },
+  journal: { ar: 'يومياتي السرية', en: 'Private Journal', sub_ar: 'مساحتك الآمنة للتعبير الحر',          sub_en: 'Your safe space to express yourself' },
+  cycle:   { ar: 'دورتي الشهرية', en: 'Cycle Tracker',  sub_ar: 'تتبّع الدورة والتنبؤ بالموعد القادم', sub_en: 'Track cycles & predict next period'  },
+};
+
+function WellnessTile({ item, isDark, isRTL, lang }: { item: WellnessItem; isDark: boolean; isRTL: boolean; lang: 'ar' | 'en' }) {
+  const router = useRouter();
+  const scale  = useRef(new Animated.Value(1)).current;
+  const info   = LABELS[item.key]!;
+
+  return (
+    <Pressable
+      onPressIn={() => Animated.spring(scale, { toValue: 0.97, friction: 10, tension: 200, useNativeDriver: true }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, friction: 8, tension: 120, useNativeDriver: true }).start()}
+      onPress={() => router.push(item.route as any)}
+      accessibilityRole="button"
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <LinearGradient
+          colors={isDark ? item.nightGrad : item.dayGrad}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.tile, {
+            borderColor:   item.accent + (isDark ? '30' : '22'),
+            shadowColor:   item.accent,
+            shadowOpacity: isDark ? 0.18 : 0.08,
+          }]}
+        >
+          <View style={[styles.tileRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.iconBubble, { backgroundColor: item.accent + (isDark ? '28' : '18') }]}>
+              <Text style={styles.tileEmoji}>{item.emoji}</Text>
+            </View>
+            <View style={[styles.textWrap, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.tileLabel, { color: isDark ? '#EDE4FF' : item.accent }]}>
+                {lang === 'ar' ? info.ar : info.en}
+              </Text>
+              <Text style={[styles.tileSub, { color: isDark ? '#9B89C4' : '#8A6070' }]}>
+                {lang === 'ar' ? info.sub_ar : info.sub_en}
+              </Text>
+            </View>
+            <Text style={[styles.chevron, { color: isDark ? '#9B89C4' : item.accent + '88' }]}>›</Text>
+          </View>
+          <View style={[styles.accentLine, { backgroundColor: item.accent + (isDark ? '40' : '30') }]} />
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export default function WellnessScreen() {
-  const { colors } = useColorScheme();
-  const router     = useRouter();
+  const { isDark, colors, lang } = useColorScheme();
+  const isRTL = lang === 'ar';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScreenHeader title="صحتي" />
-      <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
+      {isDark && <StarField />}
 
-        <Text style={[styles.greeting, { color: colors.textMuted }]}>
-          اعتني بجسدكِ وعقلكِ — كل يوم خطوة نحو الأفضل.
-        </Text>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: TAB_BAR_HEIGHT + 80 }]} showsVerticalScrollIndicator={false}>
 
-        {MENU.map(item => (
-          <Pressable key={item.route} onPress={() => router.push(item.route as any)}>
-            <Card style={styles.menuCard}>
-              <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
-                <Text style={styles.emoji}>{item.emoji}</Text>
+        {/* Header */}
+        <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <View style={{ flex: 1, gap: 4, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+            <Text style={[styles.screenTitle, { color: isDark ? colors.starGold : colors.primary }]}>
+              {isRTL ? 'صحتي' : 'Wellness'}
+            </Text>
+            <Text style={[styles.screenSub, { color: colors.textMuted }]}>
+              {isRTL
+                ? 'اعتني بجسدكِ وعقلكِ — كل يوم خطوة نحو الأفضل'
+                : 'Care for your body and mind — one day at a time'}
+            </Text>
+            {isDark && (
+              <View style={styles.decoRow}>
+                {['✦', '·', '✧', '·', '✦'].map((s, i) => (
+                  <Text key={i} style={[styles.deco, { opacity: 0.25 + i * 0.1 }]}>{s}</Text>
+                ))}
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: colors.text }]}>{item.label}</Text>
-                <Text style={[styles.sub, { color: colors.textMuted }]}>{item.sub}</Text>
-              </View>
-              <Text style={[styles.arrow, { color: colors.textMuted }]}>‹</Text>
-            </Card>
-          </Pressable>
-        ))}
+            )}
+          </View>
+          <Illustration name={isDark ? 'girl-desk' : 'girl-cycling'} height={90} />
+        </View>
+
+        {/* Tiles */}
+        <View style={styles.tilesWrap}>
+          {ITEMS.map(item => (
+            <WellnessTile key={item.key} item={item} isDark={isDark} isRTL={isRTL} lang={lang} />
+          ))}
+        </View>
+
+        {/* Affirmation card */}
+        <LinearGradient
+          colors={isDark ? ['#1A1130', '#281A42'] : ['#FDF6F0', '#F5E8EE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.affirmCard, {
+            borderColor: isDark ? '#2C1C48' : '#F0D8DC',
+          }]}
+        >
+          <Text style={[styles.affirmEmoji]}>💜</Text>
+          <Text style={[styles.affirmText, { color: isDark ? '#EDE4FF' : colors.text, textAlign: isRTL ? 'right' : 'center' }]}>
+            {isRTL
+              ? 'صحّتكِ النفسية أولوية، وليست رفاهية.'
+              : 'Your mental health is a priority, not a luxury.'}
+          </Text>
+        </LinearGradient>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:     { flex: 1 },
-  greeting: { fontSize: FontSize.sm, textAlign: 'right', marginBottom: Spacing.lg, lineHeight: 22 },
-  menuCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm },
-  iconBox:  { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  emoji:    { fontSize: 26 },
-  label:    { fontSize: FontSize.md, fontWeight: FontWeight.semibold, textAlign: 'right' },
-  sub:      { fontSize: FontSize.xs, marginTop: 2, textAlign: 'right' },
-  arrow:    { fontSize: 20, transform: [{ scaleX: -1 }] },
+  safe:  { flex: 1 },
+  scroll: { padding: Spacing.md, gap: Spacing.md },
+
+  header:      { alignItems: 'flex-end', marginBottom: Spacing.xs },
+  screenTitle: { fontSize: 26, fontWeight: FontWeight.extrabold, letterSpacing: -0.5 },
+  screenSub:   { fontSize: FontSize.sm, lineHeight: 20 },
+  decoRow:     { flexDirection: 'row', gap: 4, marginTop: 2 },
+  deco:        { fontSize: 13, color: '#E8C86A' },
+
+  tilesWrap: { gap: Spacing.sm },
+
+  tile: {
+    borderRadius:  Radius.xl,
+    borderWidth:   1,
+    overflow:      'hidden',
+    shadowOffset:  { width: 0, height: 3 },
+    shadowRadius:  10,
+    elevation:     3,
+  },
+  tileRow: {
+    alignItems: 'center',
+    padding:    Spacing.md,
+    gap:        Spacing.sm,
+  },
+  iconBubble: {
+    width:          52,
+    height:         52,
+    borderRadius:   Radius.lg,
+    alignItems:     'center',
+    justifyContent: 'center',
+    flexShrink:     0,
+  },
+  tileEmoji: { fontSize: 26 },
+  textWrap:  { flex: 1, gap: 2 },
+  tileLabel: { fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  tileSub:   { fontSize: FontSize.sm, lineHeight: 18 },
+  chevron:   { fontSize: 24, fontWeight: '300' },
+  accentLine: {
+    height:           2,
+    marginHorizontal: Spacing.md,
+    marginBottom:     Spacing.xs,
+    borderRadius:     1,
+  },
+
+  affirmCard: {
+    borderRadius:  Radius.xl,
+    borderWidth:   1,
+    padding:       Spacing.lg,
+    alignItems:    'center',
+    gap:           Spacing.sm,
+    marginTop:     Spacing.sm,
+  },
+  affirmEmoji: { fontSize: 28 },
+  affirmText:  { fontSize: FontSize.md, lineHeight: 22, fontWeight: FontWeight.medium },
 });

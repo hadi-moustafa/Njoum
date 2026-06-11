@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { StarField } from '../../components/home/StarField';
 import { api } from '../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../constants/theme';
 
@@ -32,7 +33,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function LegalGuideDetailScreen() {
   const { id }     = useLocalSearchParams<{ id: string }>();
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
 
   const { data, isLoading } = useQuery({
     queryKey: ['legal-guide', id],
@@ -45,6 +46,7 @@ export default function LegalGuideDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="جارٍ التحميل…" showBack />
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xl }}>جارٍ التحميل…</Text>
       </SafeAreaView>
@@ -54,6 +56,7 @@ export default function LegalGuideDetailScreen() {
   if (!guide) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="غير موجود" showBack />
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xl }}>الدليل القانوني غير متاح.</Text>
       </SafeAreaView>
@@ -62,6 +65,7 @@ export default function LegalGuideDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="الدليل القانوني" showBack />
       <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

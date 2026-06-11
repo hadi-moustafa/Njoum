@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -22,7 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 interface Guide { id: string; title: string; category: string; country_code: string; version: number; updated_at: string }
 
 export default function LegalScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const router     = useRouter();
 
   const { data, isLoading } = useQuery({
@@ -34,6 +35,7 @@ export default function LegalScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="حقوقي القانونية" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

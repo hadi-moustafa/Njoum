@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
 import { api } from '../services/api';
 import { startSOSBroadcast, stopSOSBroadcast, SOSLocationPayload } from '../services/sosRealtime';
@@ -32,6 +33,7 @@ type EmergencyContact = { name: string; phone: string };
 
 export function SOSButton() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [state, setState]     = useState<'idle' | 'countdown' | 'active'>('idle');
   const [countdown, setCount] = useState(SOS_GRACE_PERIOD_SECONDS);
@@ -181,6 +183,9 @@ export function SOSButton() {
 
       // Start live location broadcast to Supabase Realtime
       startSOSBroadcast(eventId, getCurrentLocation);
+
+      // Navigate to live tracking screen so the user can see their broadcast location
+      router.push(`/sos-tracking/${eventId}` as any);
 
       // Prompt to call the first contact
       offerToCallContact();

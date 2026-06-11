@@ -1,38 +1,76 @@
 import { Pressable, Text, StyleSheet, ActivityIndicator, PressableProps } from 'react-native';
-import { Colors, Spacing, Radius, FontSize, FontWeight } from '../../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useColorScheme } from '../../hooks/useColorScheme';
+import { Spacing, Radius, FontSize, FontWeight } from '../../constants/theme';
 
 interface ButtonProps extends PressableProps {
   label:    string;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   loading?: boolean;
   size?:    'sm' | 'md' | 'lg';
 }
 
 export function Button({ label, variant = 'primary', loading, size = 'md', style, ...rest }: ButtonProps) {
-  const bg = {
-    primary:   Colors.primary,
-    secondary: Colors.surface,
-    danger:    Colors.emergency,
+  const { colors } = useColorScheme();
+  const padV     = size === 'sm' ? Spacing.xs : size === 'lg' ? Spacing.lg : Spacing.sm + 4;
+  const fontSize = size === 'sm' ? FontSize.sm : FontSize.md;
+
+  if (variant === 'primary') {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.base, { paddingVertical: padV, opacity: pressed ? 0.85 : 1 }, style as any]}
+        {...rest}
+      >
+        <LinearGradient
+          colors={['#B5586A', '#7A4E7A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={[styles.label, { color: '#fff', fontSize }]}>{label}</Text>
+        }
+      </Pressable>
+    );
+  }
+
+  const bg: Record<string, string> = {
+    secondary: colors.surface,
+    outline:   'transparent',
+    danger:    colors.emergency,
     ghost:     'transparent',
-  }[variant];
-
-  const textColor = variant === 'secondary' ? Colors.primary : '#FFFFFF';
-  const borderColor = variant === 'secondary' ? Colors.primary : 'transparent';
-
-  const padV = size === 'sm' ? Spacing.xs : size === 'lg' ? Spacing.lg : Spacing.sm + 4;
+  };
+  const tc: Record<string, string> = {
+    secondary: colors.primary,
+    outline:   colors.primary,
+    danger:    '#fff',
+    ghost:     colors.primary,
+  };
+  const bc: Record<string, string> = {
+    secondary: colors.primary,
+    outline:   colors.primary,
+    danger:    'transparent',
+    ghost:     'transparent',
+  };
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: bg, borderColor, paddingVertical: padV, opacity: pressed ? 0.75 : 1 },
+        {
+          backgroundColor: bg[variant] ?? 'transparent',
+          borderColor:     bc[variant] ?? 'transparent',
+          paddingVertical: padV,
+          opacity:         pressed ? 0.75 : 1,
+        },
         style as any,
       ]}
       {...rest}
     >
       {loading
-        ? <ActivityIndicator color={textColor} />
-        : <Text style={[styles.label, { color: textColor, fontSize: size === 'sm' ? FontSize.sm : FontSize.md }]}>{label}</Text>
+        ? <ActivityIndicator color={tc[variant] ?? colors.text} />
+        : <Text style={[styles.label, { color: tc[variant] ?? colors.text, fontSize }]}>{label}</Text>
       }
     </Pressable>
   );
@@ -40,15 +78,16 @@ export function Button({ label, variant = 'primary', loading, size = 'md', style
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius:    Radius.md,
-    borderWidth:     1.5,
-    alignItems:      'center',
-    justifyContent:  'center',
+    borderRadius:      Radius.lg,
+    borderWidth:       1.5,
+    alignItems:        'center',
+    justifyContent:    'center',
     paddingHorizontal: Spacing.lg,
-    minHeight:       44,
+    minHeight:         48,
+    overflow:          'hidden',
   },
   label: {
-    fontWeight:    FontWeight.semibold,
-    textAlign:     'center',
+    fontWeight: FontWeight.bold,
+    textAlign:  'center',
   },
 });

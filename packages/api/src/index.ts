@@ -35,7 +35,8 @@ import eventsRoutes    from './routes/events';
 import mentorRoutes    from './routes/mentor';
 import adminRoutes        from './routes/admin';
 import certificateRoutes  from './routes/certificates';
-import { openapiSpec }    from './openapi';
+import { openapiSpec }           from './openapi';
+import { scheduleCycleReminderJob } from './services/cycleReminderJob';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -119,6 +120,9 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`[Njoum API] Running on port ${PORT} (${process.env.NODE_ENV ?? 'development'})`);
+  if (process.env.NODE_ENV !== 'test') {
+    scheduleCycleReminderJob();
+  }
 });
 
 export default app; // for supertest

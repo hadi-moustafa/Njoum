@@ -6,13 +6,17 @@ import {
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../services/supabase';
-import {
-  Colors, Spacing, FontSize, FontWeight, Radius, Shadow,
-} from '../../constants/theme';
+import { useColorScheme } from '../../hooks/useColorScheme';
+import { StarField } from '../../components/home/StarField';
+import { Illustration } from '../../components/home/Illustration';
+import { Spacing, FontSize, FontWeight, Radius } from '../../constants/theme';
 
 export default function SignInScreen() {
-  const router = useRouter();
+  const router                   = useRouter();
+  const { isDark, colors, lang } = useColorScheme();
+  const isRTL                    = lang === 'ar';
 
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
@@ -23,9 +27,9 @@ export default function SignInScreen() {
   const pwdRef = useRef<TI>(null);
 
   const validate = () => {
-    if (!email.trim())    { setError('الرجاء إدخال البريد الإلكتروني'); return false; }
-    if (!/\S+@\S+\.\S+/.test(email)) { setError('البريد الإلكتروني غير صحيح'); return false; }
-    if (!password)        { setError('الرجاء إدخال كلمة المرور'); return false; }
+    if (!email.trim())                  { setError(isRTL ? 'الرجاء إدخال البريد الإلكتروني' : 'Please enter your email');    return false; }
+    if (!/\S+@\S+\.\S+/.test(email))   { setError(isRTL ? 'البريد الإلكتروني غير صحيح'     : 'Invalid email address');      return false; }
+    if (!password)                      { setError(isRTL ? 'الرجاء إدخال كلمة المرور'       : 'Please enter your password'); return false; }
     return true;
   };
 
@@ -43,9 +47,9 @@ export default function SignInScreen() {
 
     if (e) {
       if (e.message.includes('Email not confirmed')) {
-        setError('البريد الإلكتروني لم يتم تأكيده بعد. يرجى إنشاء حساب جديد أو التواصل مع الدعم.');
+        setError(isRTL ? 'البريد الإلكتروني لم يتم تأكيده.' : 'Email not confirmed. Please verify first.');
       } else if (e.message.includes('Invalid login')) {
-        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        setError(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password');
       } else {
         setError(e.message);
       }
@@ -56,48 +60,85 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {isDark && <StarField />}
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Brand Header ── */}
-          <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoStar}>★</Text>
+          {/* ── Brand Hero ── */}
+          <View style={[styles.hero, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={styles.heroLeft}>
+              <View style={[styles.logoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <LinearGradient
+                  colors={['#B5586A', '#7A4E7A']}
+                  style={styles.logoCircle}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.logoStar}>✦</Text>
+                </LinearGradient>
+                <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                  <Text style={[styles.appName, { color: isDark ? colors.starGold : colors.primary }]}>
+                    {isRTL ? 'نجوم' : 'Njoum'}
+                  </Text>
+                  <Text style={[styles.tagline, { color: colors.textMuted }]}>
+                    {isRTL ? 'حين يحلّ الظلام، انظري للأعلى' : "When it's dark, look up"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.decoRow}>
+                {(isDark
+                  ? ['✦', '✧', '·', '✦', '·']
+                  : ['·', '✦', '·', '✦', '·']
+                ).map((s, i) => (
+                  <Text key={i} style={[styles.deco, { color: isDark ? '#E8C86A' : colors.primary, opacity: 0.25 + i * 0.1 }]}>
+                    {s}
+                  </Text>
+                ))}
+              </View>
             </View>
-            <Text style={styles.appName}>نجوم</Text>
-            <Text style={styles.tagline}>حين يحلّ الظلام، انظري للأعلى</Text>
+            <Illustration name={isDark ? 'girl-standing' : 'girl-phone'} height={110} />
           </View>
 
           {/* ── Login Card ── */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>تسجيل الدخول</Text>
+          <View style={[styles.card, {
+            backgroundColor: isDark ? colors.card   : colors.surface,
+            borderColor:     isDark ? '#2C1C48'     : '#F0E4E0',
+            shadowColor:     isDark ? '#A480FF'     : '#B5586A',
+          }]}>
+            <Text style={[styles.cardTitle, { color: colors.text, textAlign: isRTL ? 'right' : 'left' }]}>
+              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
+            </Text>
 
             {!!error && (
               <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={[styles.errorText, { textAlign: isRTL ? 'right' : 'left' }]}>{error}</Text>
               </View>
             )}
 
             {/* Email */}
             <View style={styles.field}>
-              <Text style={styles.label}>البريد الإلكتروني</Text>
+              <Text style={[styles.label, { color: colors.text, textAlign: isRTL ? 'right' : 'left' }]}>
+                {isRTL ? 'البريد الإلكتروني' : 'Email'}
+              </Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, {
+                  borderColor:     isDark ? '#2C1C48'       : '#E8D5D0',
+                  color:           colors.text,
+                  backgroundColor: isDark ? colors.surface  : colors.background,
+                }]}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="example@email.com"
-                placeholderTextColor={Colors.textLight}
-                textAlign="right"
+                placeholderTextColor={colors.textMuted}
+                textAlign={isRTL ? 'right' : 'left'}
                 returnKeyType="next"
                 onSubmitEditing={() => pwdRef.current?.focus()}
               />
@@ -105,17 +146,23 @@ export default function SignInScreen() {
 
             {/* Password */}
             <View style={styles.field}>
-              <Text style={styles.label}>كلمة المرور</Text>
+              <Text style={[styles.label, { color: colors.text, textAlign: isRTL ? 'right' : 'left' }]}>
+                {isRTL ? 'كلمة المرور' : 'Password'}
+              </Text>
               <View style={styles.pwdWrap}>
                 <TextInput
                   ref={pwdRef}
-                  style={[styles.input, styles.pwdInput]}
+                  style={[styles.input, styles.pwdInput, {
+                    borderColor:     isDark ? '#2C1C48'      : '#E8D5D0',
+                    color:           colors.text,
+                    backgroundColor: isDark ? colors.surface : colors.background,
+                  }]}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPwd}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.textLight}
-                  textAlign="right"
+                  placeholderTextColor={colors.textMuted}
+                  textAlign={isRTL ? 'right' : 'left'}
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
                 />
@@ -127,22 +174,35 @@ export default function SignInScreen() {
 
             {/* Login button */}
             <Pressable
-              style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
+              style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.85 : 1 }]}
               onPress={handleLogin}
               disabled={loading}
               accessibilityRole="button"
             >
+              <LinearGradient
+                colors={['#B5586A', '#7A4E7A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
               {loading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.btnText}>دخول</Text>
+                : <Text style={styles.btnText}>{isRTL ? 'دخول' : 'Sign In'}</Text>
               }
             </Pressable>
           </View>
 
           {/* ── Footer ── */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>ليس لديكِ حساب؟</Text>
-            <Link href="/(auth)/sign-up" style={styles.link}>إنشاء حساب جديد</Link>
+            <Text style={[styles.footerText, { color: colors.textMuted }]}>
+              {isRTL ? 'ليس لديكِ حساب؟' : "Don't have an account?"}
+            </Text>
+            <Link
+              href="/(auth)/sign-up"
+              style={[styles.link, { color: isDark ? colors.starGold : colors.primary }]}
+            >
+              {isRTL ? 'إنشاء حساب جديد' : 'Create an account'}
+            </Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -151,121 +211,83 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: Colors.background },
-  scroll: { flexGrow: 1, padding: Spacing.md, justifyContent: 'center' },
+  safe:   { flex: 1 },
+  scroll: { flexGrow: 1, padding: Spacing.md, justifyContent: 'center', gap: Spacing.lg },
 
-  // Header
-  header: {
-    alignItems:   'center',
-    marginBottom: Spacing.xl,
-    gap:          Spacing.sm,
+  hero: {
+    alignItems:     'flex-end',
+    justifyContent: 'space-between',
+  },
+  heroLeft: { flex: 1, gap: Spacing.sm },
+  logoRow: {
+    alignItems: 'center',
+    gap:        Spacing.sm,
   },
   logoCircle: {
-    width:           88,
-    height:          88,
-    borderRadius:    Radius.full,
-    backgroundColor: Colors.primary,
-    alignItems:      'center',
-    justifyContent:  'center',
-    ...Shadow.lg,
+    width:          52,
+    height:         52,
+    borderRadius:   Radius.lg,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
-  logoStar: { fontSize: 40, color: '#fff' },
-  appName:  {
-    fontSize:   FontSize.h1,
-    fontWeight: FontWeight.extrabold,
-    color:      Colors.primary,
-  },
-  tagline: {
-    fontSize:  FontSize.sm,
-    color:     Colors.textMuted,
-    textAlign: 'center',
-  },
+  logoStar: { fontSize: 26, color: '#fff' },
+  appName:  { fontSize: 26, fontWeight: FontWeight.extrabold, letterSpacing: -0.5 },
+  tagline:  { fontSize: 11, marginTop: 2 },
+  decoRow:  { flexDirection: 'row', gap: 4, paddingLeft: 4 },
+  deco:     { fontSize: 14 },
 
-  // Card
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius:    Radius.lg,
-    padding:         Spacing.lg,
-    marginBottom:    Spacing.md,
-    gap:             Spacing.md,
-    ...Shadow.md,
+    borderRadius:  Radius.xl,
+    padding:       Spacing.lg,
+    gap:           Spacing.md,
+    borderWidth:   1,
+    shadowOffset:  { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius:  16,
+    elevation:     4,
   },
-  cardTitle: {
-    fontSize:   FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color:      Colors.text,
-    textAlign:  'right',
-  },
+  cardTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold },
 
-  // Error
   errorBox: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: 'rgba(229,62,62,0.1)',
     borderRadius:    Radius.sm,
     padding:         Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.emergency,
+    borderLeftColor: '#E53E3E',
   },
-  errorText: { fontSize: FontSize.sm, color: Colors.emergency, textAlign: 'right' },
+  errorText: { fontSize: FontSize.sm, color: '#E53E3E' },
 
-  // Fields
   field: { gap: 6 },
-  label: {
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color:      Colors.text,
-    textAlign:  'right',
-  },
+  label: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
   input: {
-    borderWidth:   1.5,
-    borderColor:   Colors.border,
-    borderRadius:  Radius.md,
+    borderWidth:       1.5,
+    borderRadius:      Radius.md,
     paddingVertical:   Spacing.sm + 4,
     paddingHorizontal: Spacing.md,
-    fontSize:      FontSize.md,
-    color:         Colors.text,
-    backgroundColor: Colors.background,
+    fontSize:          FontSize.md,
   },
-  pwdWrap: {
-    flexDirection: 'row',
-    alignItems:    'center',
-  },
+  pwdWrap:  { flexDirection: 'row', alignItems: 'center' },
   pwdInput: { flex: 1 },
   eyeBtn: {
-    position:    'absolute',
-    left:        Spacing.sm,
+    position:          'absolute',
+    left:              Spacing.sm,
     top: 0, bottom: 0,
-    justifyContent: 'center',
+    justifyContent:    'center',
     paddingHorizontal: Spacing.xs,
   },
   eyeIcon: { fontSize: 18 },
 
-  // Button
   btn: {
-    backgroundColor: Colors.primary,
-    borderRadius:    Radius.md,
+    borderRadius:    Radius.lg,
     paddingVertical: Spacing.md,
     alignItems:      'center',
     minHeight:       52,
     justifyContent:  'center',
-    ...Shadow.md,
+    overflow:        'hidden',
   },
-  btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  btnText: {
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color:      '#fff',
-  },
+  btnText: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: '#fff' },
 
-  // Footer
-  footer: {
-    alignItems:    'center',
-    gap:           Spacing.xs,
-    paddingBottom: Spacing.lg,
-  },
-  footerText: { fontSize: FontSize.sm, color: Colors.textMuted },
-  link: {
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.bold,
-    color:      Colors.primary,
-  },
+  footer:     { alignItems: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
+  footerText: { fontSize: FontSize.sm },
+  link:       { fontSize: FontSize.sm, fontWeight: FontWeight.bold },
 });

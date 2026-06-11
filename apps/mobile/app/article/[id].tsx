@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { StarField } from '../../components/home/StarField';
 import { api } from '../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../constants/theme';
 
@@ -40,7 +41,7 @@ const MODULE_COLORS: Record<string, string> = {
 
 export default function ArticleDetailScreen() {
   const { id }     = useLocalSearchParams<{ id: string }>();
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
 
   const { data, isLoading } = useQuery({
     queryKey: ['article', id],
@@ -53,6 +54,7 @@ export default function ArticleDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="جارٍ التحميل…" showBack />
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xl }}>جارٍ تحميل المقال…</Text>
       </SafeAreaView>
@@ -62,6 +64,7 @@ export default function ArticleDetailScreen() {
   if (!article) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+        {isDark && <StarField />}
         <ScreenHeader title="غير موجود" showBack />
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: Spacing.xl }}>المقال غير متاح.</Text>
       </SafeAreaView>
@@ -72,6 +75,7 @@ export default function ArticleDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="مقالة" showBack />
       <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

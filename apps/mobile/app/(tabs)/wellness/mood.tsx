@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -31,7 +32,7 @@ function scoreColor(score: number): string {
 }
 
 export default function MoodScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc         = useQueryClient();
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -66,6 +67,7 @@ export default function MoodScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="مزاجي اليومي" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

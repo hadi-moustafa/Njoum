@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Hotline } from '@njoum/shared';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
@@ -23,12 +24,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function HotlinesScreen() {
-  const { colors } = useColorScheme();
+  const { isDark, colors } = useColorScheme();
 
   const { data, isLoading } = useQuery({
     queryKey: ['hotlines-local'],
     queryFn:  () => api.get<Hotline[]>('/hotlines/local'),
-    staleTime: 1000 * 60 * 60, // 1 hour — offline-first
+    staleTime: 1000 * 60 * 60,          // 1 hour
+    gcTime:   1000 * 60 * 60 * 24 * 30, // 30 days — persisted via MMKV for offline access
   });
 
   const hotlines = data?.data ?? [];
@@ -49,6 +51,7 @@ export default function HotlinesScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title="خطوط الطوارئ" showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
         {isLoading && <Text style={[styles.loading, { color: colors.textMuted }]}>جارٍ التحميل…</Text>}

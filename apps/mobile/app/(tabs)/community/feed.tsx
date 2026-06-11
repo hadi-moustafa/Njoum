@@ -10,6 +10,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { useColorScheme } from '../../../hooks/useColorScheme';
+import { StarField } from '../../../components/home/StarField';
 import { api } from '../../../services/api';
 import { Colors, Spacing, FontSize, FontWeight, TAB_BAR_HEIGHT } from '../../../constants/theme';
 
@@ -31,7 +32,7 @@ const REACTIONS: { type: string; emoji: string; label: string }[] = [
 ];
 
 export default function FeedScreen() {
-  const { colors }    = useColorScheme();
+  const { isDark, colors } = useColorScheme();
   const qc            = useQueryClient();
   const params        = useLocalSearchParams<{ groupId: string; groupName: string }>();
   const groupId       = params.groupId ?? '';
@@ -69,6 +70,7 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+      {isDark && <StarField />}
       <ScreenHeader title={groupName} showBack />
       <ScrollView contentContainerStyle={{ padding: Spacing.md, paddingBottom: TAB_BAR_HEIGHT + 80 }}>
 

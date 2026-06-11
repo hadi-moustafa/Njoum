@@ -1,137 +1,135 @@
-// ============================================================
-// Feature 1 — Home Screen
-// • Affirmation: fetched from content_articles (public read)
-// • Mood check-in: saved to mood_logs (requires auth — graceful fallback)
-// • Quick-access tiles: navigate to all major features
-// ============================================================
-import { useEffect, useState, useCallback } from 'react';
+// Home screen — redesigned with star/sun themes, Sapiens illustrations,
+// quotes carousel, mood planets, scouts calendar, and modern quick-access grid.
+import { useCallback, useState, useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet,
-  Pressable, RefreshControl, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, Pressable, RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../../services/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  Colors, Spacing, FontSize, FontWeight, Radius, Shadow, TAB_BAR_HEIGHT,
-} from '../../constants/theme';
+import { useColorScheme } from '../../hooks/useColorScheme';
+import { useAppStore }    from '../../store/appStore';
+import { strings }        from '../../constants/i18n';
+import { Spacing, TAB_BAR_HEIGHT } from '../../constants/theme';
 
-// ── Types ────────────────────────────────────────────────────
-type MoodEmoji = '😔' | '😐' | '🙂' | '😊' | '😄';
+import { StarField }       from '../../components/home/StarField';
+import { QuoteCarousel }   from '../../components/home/QuoteCarousel';
+import { MoodMeter }       from '../../components/home/MoodMeter';
+import { MiniCalendar }    from '../../components/home/MiniCalendar';
+import { QuickAccessGrid } from '../../components/home/QuickAccessGrid';
+import { Illustration }    from '../../components/home/Illustration';
 
-const MOOD_EMOJIS: MoodEmoji[] = ['😔', '😐', '🙂', '😊', '😄'];
-const MOOD_LABELS = ['صعب', 'عادي', 'بخير', 'سعيدة', 'رائع'];
-const MOOD_SCORE: Record<MoodEmoji, number> = {
-  '😔': 1, '😐': 2, '🙂': 3, '😊': 4, '😄': 5,
-};
+// ── Header ────────────────────────────────────────────────────
+function HomeHeader({
+  isDark, colors, lang,
+  onToggleTheme, onToggleLang,
+}: {
+  isDark: boolean;
+  colors: any;
+  lang: 'ar' | 'en';
+  onToggleTheme: () => void;
+  onToggleLang:  () => void;
+}) {
+  const isRTL = lang === 'ar';
+  const s     = strings[lang];
 
-const STATIC_AFFIRMATIONS = [
-  'أنتِ قوية وقادرة على تجاوز أي تحدٍّ.',
-  'صوتكِ مهم ويستحق أن يُسمع.',
-  'كل يوم فرصة جديدة للنمو والتألق.',
-  'أنتِ لستِ وحدكِ — نجوم معكِ دائماً.',
-  'شجاعتكِ تُلهم من حولكِ.',
-];
+  const hour = new Date().getHours();
+  const timeGreeting =
+    lang === 'ar'
+      ? (hour < 12 ? 'صباح الخير ✨' : hour < 18 ? 'مساء الخير ✨' : 'مساء النور ✨')
+      : (hour < 12 ? 'Good morning ✨' : hour < 18 ? 'Good afternoon ✨' : 'Good evening ✨');
 
-// ── Quick-access tiles ────────────────────────────────────────
-const TILES = [
-  { icon: '📞', label: 'خطوط الطوارئ', route: '/safety/hotlines',  bg: Colors.tileRed,    accent: '#E53E3E' },
-  { icon: '📓', label: 'مذكراتي',       route: '/wellness/journal', bg: Colors.tilePurple, accent: Colors.depth },
-  { icon: '🌸', label: 'دورتي',         route: '/wellness/cycle',   bg: Colors.tilePink,   accent: Colors.primary },
-  { icon: '💬', label: 'المجتمع',       route: '/community',        bg: Colors.tileBlue,   accent: Colors.info },
-  { icon: '⭐', label: 'الكشافة',       route: '/safety/scouts',    bg: Colors.tileYellow, accent: Colors.accent },
-  { icon: '⚖️', label: 'حقوقي',        route: '/safety/legal',     bg: Colors.tileGreen,  accent: Colors.success },
-] as const;
+  return (
+    <View style={styles.headerSection}>
+      {/* Top row: app name + toggles */}
+      <View style={[styles.topRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <Text style={[styles.appName, { color: colors.primary }]}>{s.appName}</Text>
+        <View style={[styles.toggleRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <Pressable
+            onPress={onToggleLang}
+            style={[styles.langPill, {
+              backgroundColor: isDark ? colors.card : colors.surface,
+              borderColor:     isDark ? '#2C1C48' : '#E8D5D0',
+            }]}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.langText, { color: isDark ? colors.starGold : colors.primary }]}>
+              {lang === 'ar' ? 'EN' : 'ع'}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onToggleTheme}
+            style={[styles.themeBtn, {
+              backgroundColor: isDark ? 'rgba(164,128,255,0.18)' : 'rgba(181,88,106,0.10)',
+            }]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.themeBtnIcon}>{isDark ? '☀️' : '🌙'}</Text>
+          </Pressable>
+        </View>
+      </View>
 
-// ── Mood persistence (local until auth is wired) ─────────────
-const TODAY = new Date().toISOString().split('T')[0]!;
-const MOOD_KEY = `njoum_mood_${TODAY}`;
+      {/* Hero row: greeting + Sapiens character */}
+      <View style={[styles.heroRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        {/* Left: time greeting */}
+        <View style={[styles.heroText, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+          <Text style={[styles.greeting, { color: colors.textMuted }]}>{timeGreeting}</Text>
+          <Text style={[styles.heroTagline, { color: colors.text }]}>
+            {lang === 'ar' ? 'كيف حالكِ اليوم؟' : "How's your day?"}
+          </Text>
+          {isDark ? (
+            <View style={styles.starsRow}>
+              {['✦', '✧', '✦', '✧', '✦'].map((s, i) => (
+                <Text key={i} style={[styles.starDeco, { opacity: 0.4 + i * 0.12 }]}>{s}</Text>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.starsRow}>
+              {['·', '✦', '·', '✦', '·'].map((s, i) => (
+                <Text key={i} style={[styles.starDeco, { color: colors.primary, opacity: 0.3 + i * 0.12 }]}>{s}</Text>
+              ))}
+            </View>
+          )}
+        </View>
 
-async function loadTodayMood(): Promise<MoodEmoji | null> {
-  // 1. Try Supabase (works when auth session exists)
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    const { data } = await supabase
-      .from('mood_logs')
-      .select('emoji')
-      .eq('user_id', session.user.id)
-      .eq('log_date', TODAY)
-      .maybeSingle();
-    if (data?.emoji) return data.emoji as MoodEmoji;
-  }
-  // 2. Fall back to local storage
-  const local = await AsyncStorage.getItem(MOOD_KEY);
-  return local as MoodEmoji | null;
+        {/* Right: Sapiens illustration */}
+        <Illustration
+          name={isDark ? 'girl-standing' : 'girl-walking'}
+          height={130}
+        />
+      </View>
+    </View>
+  );
 }
 
-async function saveMood(emoji: MoodEmoji): Promise<void> {
-  // Local always
-  await AsyncStorage.setItem(MOOD_KEY, emoji);
-  // Supabase when authenticated
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
-  await supabase.from('mood_logs').upsert({
-    user_id:  session.user.id,
-    log_date: TODAY,
-    emoji,
-    score:    MOOD_SCORE[emoji],
-  }, { onConflict: 'user_id,log_date' });
-}
-
-async function fetchAffirmation(): Promise<string> {
-  const { data } = await supabase
-    .from('content_articles')
-    .select('title, body')
-    .eq('module', 'wellness')
-    .eq('is_published', true)
-    .limit(20);
-
-  if (data && data.length > 0) {
-    const pick = data[Math.floor(Math.random() * data.length)]!;
-    // Use the body first sentence as affirmation if short
-    const first = pick.body?.split('.')[0]?.trim();
-    if (first && first.length > 10 && first.length < 120) return first;
-    return pick.title ?? STATIC_AFFIRMATIONS[0]!;
-  }
-  return STATIC_AFFIRMATIONS[Math.floor(Math.random() * STATIC_AFFIRMATIONS.length)]!;
-}
-
-// ── Component ─────────────────────────────────────────────────
+// ── Screen ────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const router = useRouter();
-
-  const [affirmation, setAffirmation] = useState<string>('');
-  const [todayMood, setTodayMood] = useState<MoodEmoji | null>(null);
-  const [savingMood, setSavingMood] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { isDark, colors, lang } = useColorScheme();
+  const { setTheme, setLanguage } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
-
-  const load = useCallback(async () => {
-    const [text, mood] = await Promise.all([fetchAffirmation(), loadTodayMood()]);
-    setAffirmation(text);
-    setTodayMood(mood);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const refreshKey = useRef(0);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    refreshKey.current += 1;
+    await new Promise(r => setTimeout(r, 600));
     setRefreshing(false);
-  }, [load]);
+  }, []);
 
-  const handleMood = async (emoji: MoodEmoji) => {
-    setSavingMood(true);
-    await saveMood(emoji);
-    setTodayMood(emoji);
-    setSavingMood(false);
-  };
+  const onToggleTheme = useCallback(() => {
+    setTheme(isDark ? 'light' : 'dark');
+  }, [isDark, setTheme]);
+
+  const onToggleLang = useCallback(() => {
+    setLanguage(lang === 'ar' ? 'en' : 'ar');
+  }, [lang, setLanguage]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      {/* Fixed star field behind content — dark mode only */}
+      {isDark && <StarField />}
+
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -139,289 +137,124 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={isDark ? '#A480FF' : '#B5586A'}
+            colors={['#B5586A']}
           />
         }
       >
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>مرحباً بكِ ✨</Text>
-            <Text style={styles.appName}>نجوم</Text>
-          </View>
-          <View style={styles.starBadge}>
-            <Text style={styles.starIcon}>★</Text>
-          </View>
-        </View>
+        <HomeHeader
+          isDark={isDark}
+          colors={colors}
+          lang={lang}
+          onToggleTheme={onToggleTheme}
+          onToggleLang={onToggleLang}
+        />
 
-        {/* ── Affirmation card ── */}
-        <LinearGradient
-          colors={[Colors.gradientStart, Colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.affirmCard}
-        >
-          <Text style={styles.affirmLabel}>تأمل اليوم</Text>
-          {loading ? (
-            <ActivityIndicator color="#fff" style={{ marginVertical: 12 }} />
-          ) : (
-            <Text style={styles.affirmText}>{affirmation}</Text>
-          )}
-          <Text style={styles.affirmQuoteMark}>❝</Text>
-        </LinearGradient>
+        <QuoteCarousel
+          key={`quotes-${lang}`}
+          lang={lang}
+          isDark={isDark}
+          colors={colors}
+        />
 
-        {/* ── Mood check-in ── */}
-        <View style={styles.card}>
-          {todayMood ? (
-            <View style={styles.moodDoneRow}>
-              <Text style={styles.moodDoneEmoji}>{todayMood}</Text>
-              <View>
-                <Text style={styles.moodDoneTitle}>سجّلتِ مزاجكِ اليوم</Text>
-                <Text style={styles.moodDoneSub}>شكراً على مشاركتكِ 💕</Text>
-              </View>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.cardTitle}>كيف حالكِ اليوم؟</Text>
-              <Text style={styles.cardSub}>لمستي الأولى نحو رعاية نفسكِ</Text>
-              <View style={styles.moodRow}>
-                {MOOD_EMOJIS.map((emoji, i) => (
-                  <Pressable
-                    key={emoji}
-                    style={({ pressed }) => [
-                      styles.moodBtn,
-                      pressed && styles.moodBtnPressed,
-                    ]}
-                    onPress={() => handleMood(emoji)}
-                    disabled={savingMood}
-                  >
-                    <Text style={styles.moodEmoji}>{emoji}</Text>
-                    <Text style={styles.moodLabel}>{MOOD_LABELS[i]}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              {savingMood && (
-                <ActivityIndicator
-                  color={Colors.primary}
-                  style={{ marginTop: 8 }}
-                />
-              )}
-            </>
-          )}
-        </View>
+        <MoodMeter
+          key={`mood-${refreshKey.current}`}
+          lang={lang}
+          isDark={isDark}
+          colors={colors}
+        />
 
-        {/* ── Quick-access grid ── */}
-        <Text style={styles.sectionTitle}>وصول سريع</Text>
-        <View style={styles.tilesGrid}>
-          {TILES.map(tile => (
-            <Pressable
-              key={tile.route}
-              style={({ pressed }) => [
-                styles.tile,
-                { backgroundColor: tile.bg },
-                pressed && styles.tilePressed,
-              ]}
-              onPress={() => router.push(tile.route as any)}
-              accessibilityRole="button"
-            >
-              <View style={[styles.tileIconWrap, { backgroundColor: tile.accent + '22' }]}>
-                <Text style={styles.tileIcon}>{tile.icon}</Text>
-              </View>
-              <Text style={[styles.tileLabel, { color: tile.accent }]}>
-                {tile.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <MiniCalendar
+          lang={lang}
+          isDark={isDark}
+          colors={colors}
+        />
+
+        <QuickAccessGrid
+          lang={lang}
+          isDark={isDark}
+          colors={colors}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  safe: { flex: 1 },
   scroll: {
     padding: Spacing.md,
-    paddingBottom: TAB_BAR_HEIGHT + 90,
+    paddingBottom: TAB_BAR_HEIGHT + 100,
   },
 
-  // Header
-  header: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    marginBottom:   Spacing.lg,
+  // Header sections
+  headerSection: {
+    marginBottom: Spacing.md,
+    gap: 8,
   },
-  greeting: {
-    fontSize:   FontSize.sm,
-    color:      Colors.textMuted,
-    fontWeight: FontWeight.medium,
+  topRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   appName: {
-    fontSize:   FontSize.h2,
-    fontWeight: FontWeight.extrabold,
-    color:      Colors.primary,
-  },
-  starBadge: {
-    width:           48,
-    height:          48,
-    borderRadius:    Radius.full,
-    backgroundColor: Colors.primary,
-    alignItems:      'center',
-    justifyContent:  'center',
-    ...Shadow.md,
-  },
-  starIcon: {
-    fontSize: 22,
-    color:    '#fff',
-  },
-
-  // Affirmation
-  affirmCard: {
-    borderRadius: Radius.lg,
-    padding:      Spacing.lg,
-    marginBottom: Spacing.md,
-    minHeight:    120,
-    justifyContent: 'center',
-    ...Shadow.lg,
-  },
-  affirmLabel: {
-    fontSize:   FontSize.xs,
-    color:      'rgba(255,255,255,0.7)',
-    fontWeight: FontWeight.semibold,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: Spacing.sm,
-    textAlign: 'right',
-  },
-  affirmText: {
-    fontSize:   FontSize.lg,
-    color:      '#FFFFFF',
-    fontWeight: FontWeight.semibold,
-    lineHeight: 30,
-    textAlign:  'right',
-  },
-  affirmQuoteMark: {
-    position: 'absolute',
-    bottom:   Spacing.sm,
-    left:     Spacing.md,
-    fontSize: 48,
-    color:    'rgba(255,255,255,0.15)',
-  },
-
-  // Card
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius:    Radius.lg,
-    padding:         Spacing.md,
-    marginBottom:    Spacing.md,
-    ...Shadow.sm,
-  },
-  cardTitle: {
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color:      Colors.text,
-    textAlign:  'right',
-    marginBottom: 2,
-  },
-  cardSub: {
-    fontSize:   FontSize.sm,
-    color:      Colors.textMuted,
-    textAlign:  'right',
-    marginBottom: Spacing.md,
-  },
-
-  // Mood done
-  moodDoneRow: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    gap:            Spacing.md,
-  },
-  moodDoneEmoji: {
-    fontSize: 42,
-  },
-  moodDoneTitle: {
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color:      Colors.text,
-    textAlign:  'right',
-  },
-  moodDoneSub: {
-    fontSize:  FontSize.sm,
-    color:     Colors.textMuted,
-    textAlign: 'right',
-  },
-
-  // Mood picker
-  moodRow: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-  },
-  moodBtn: {
-    alignItems:   'center',
-    gap:          Spacing.xs,
-    padding:      Spacing.sm,
-    borderRadius: Radius.md,
-    flex:         1,
-  },
-  moodBtnPressed: {
-    backgroundColor: Colors.primaryLight,
-  },
-  moodEmoji: {
     fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  moodLabel: {
-    fontSize:   FontSize.xs,
-    color:      Colors.textMuted,
-    fontWeight: FontWeight.medium,
+  toggleRow: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  themeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeBtnIcon: {
+    fontSize: 18,
   },
 
-  // Section title
-  sectionTitle: {
-    fontSize:    FontSize.lg,
-    fontWeight:  FontWeight.bold,
-    color:       Colors.text,
-    textAlign:   'right',
-    marginBottom: Spacing.sm,
+  // Hero row
+  heroRow: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingTop: 4,
   },
-
-  // Tiles
-  tilesGrid: {
+  heroText: {
+    flex: 1,
+    gap: 4,
+    paddingBottom: 8,
+  },
+  greeting: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  heroTagline: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+  },
+  starsRow: {
     flexDirection: 'row',
-    flexWrap:      'wrap',
-    gap:           Spacing.sm,
+    gap: 4,
+    marginTop: 4,
   },
-  tile: {
-    width:          '47.5%',
-    borderRadius:   Radius.lg,
-    padding:        Spacing.md,
-    alignItems:     'center',
-    gap:            Spacing.sm,
-    minHeight:      110,
-    justifyContent: 'center',
-    ...Shadow.sm,
-  },
-  tilePressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.97 }],
-  },
-  tileIconWrap: {
-    width:        52,
-    height:       52,
-    borderRadius: Radius.full,
-    alignItems:   'center',
-    justifyContent: 'center',
-  },
-  tileIcon: {
-    fontSize: 26,
-  },
-  tileLabel: {
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.bold,
-    textAlign:  'center',
+  starDeco: {
+    fontSize: 14,
+    color: '#E8C86A',
   },
 });
