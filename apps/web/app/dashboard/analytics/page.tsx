@@ -28,13 +28,12 @@ export default async function AnalyticsPage() {
   const [moodRes, articlesRes, attemptsRes, sosRes, totalUsersRes, newUsersRes] = await Promise.all([
     supabaseAdmin
       .from('mood_logs')
-      .select('date, score')
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-      .order('date'),
+      .select('log_date, score')
+      .gte('log_date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('log_date'),
     supabaseAdmin
       .from('content_articles')
-      .select('module')
-      .is('deleted_at', null),
+      .select('module'),
     supabaseAdmin
       .from('quiz_attempts')
       .select('quiz_id, safety_quizzes!quiz_id(module)'),
@@ -57,9 +56,9 @@ export default async function AnalyticsPage() {
   // ── mood trend aggregation ───────────────────────────────────
   const moodByDate = new Map<string, { sum: number; count: number }>();
   (moodRes.data ?? []).forEach((m: any) => {
-    const e = moodByDate.get(m.date) ?? { sum: 0, count: 0 };
+    const e = moodByDate.get(m.log_date) ?? { sum: 0, count: 0 };
     e.sum += m.score; e.count += 1;
-    moodByDate.set(m.date, e);
+    moodByDate.set(m.log_date, e);
   });
   const moods: MoodStat[] = Array.from(moodByDate.entries()).map(([date, { sum, count }]) => ({
     date,

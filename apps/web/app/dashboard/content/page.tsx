@@ -69,13 +69,18 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
             {articles.filter((a: any) => a.is_published).length} مقالة منشورة من {articles.length}
           </p>
         </div>
-        <Link
-          href="/dashboard/content/new"
-          className="flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
-        >
-          <span className="text-lg leading-none">+</span>
-          مقالة جديدة
-        </Link>
+        {/* Action button — changes per active tab */}
+        {tab === 'articles' && (
+          <Link
+            href="/dashboard/content/new"
+            className="flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
+          >
+            <span className="text-lg leading-none">+</span>
+            مقالة جديدة
+          </Link>
+        )}
+        {tab === 'quizzes' && <NewQuizButton />}
+        {tab === 'videos'  && <VideoForm />}
       </div>
 
       {/* Tabs */}
@@ -140,9 +145,6 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
       {/* Quizzes tab */}
       {tab === 'quizzes' && (
         <div>
-          <div className="flex justify-end mb-4">
-            <NewQuizButton />
-          </div>
           <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-njoum-bg">
@@ -180,9 +182,6 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
       {/* Videos tab */}
       {tab === 'videos' && (
         <div>
-          <div className="flex justify-end mb-4">
-            <VideoForm />
-          </div>
           <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-njoum-bg"><tr>
