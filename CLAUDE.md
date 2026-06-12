@@ -754,6 +754,34 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 - Mentor system overhaul complete (2026-06-11) — girl chooses specific mentor, mentor content feed, mentor-role mobile dashboard, web admin mentors page
 - Google Sign-In fixed end-to-end (2026-06-12) — DB trigger auto-creates public.users on auth sign-up, web callback upserts user + fixes Vercel origin header, mobile sign-in adds Google PKCE OAuth button, root layout listens to onAuthStateChange
 - Web CRUD complete (2026-06-12) — full edit+delete across all dashboard sections, video create/edit/delete, quiz bug fixes, supabaseAdmin security audit
+- Web major redesign (2026-06-12) — new top header + collapsible sidebar, dark/light mode with CSS vars + FOUC prevention, AR/EN language toggle, twinkling star field background (dark mode), sparkle/sequin effects on login, gradient star logo with glow, glass-morphism cards
+
+#### Web major redesign (2026-06-12)
+
+**Navigation**: Replaced fixed left sidebar with a `fixed top-16 inset-inline-start-0` collapsible sidebar (240px expanded / 72px icon-only) + a new fixed `Topbar` header. RTL-aware using CSS logical properties (`inset-inline-start`, `padding-inline-start`).
+
+**Dark/Light mode**: CSS custom properties (`--njoum-bg`, `--njoum-surface`, etc.) toggled by `.dark` class on `<html>`. A FOUC-prevention inline `<script>` in `layout.tsx` sets the class synchronously before paint. Toggle button in Topbar, also on the login page.
+
+**Language toggle**: AR (RTL) ↔ EN (LTR) — persisted in `localStorage('njoum-lang')`, applied via `html.lang` + `html.dir`. Restored on load by same FOUC script. Sidebar labels update via `storage` event.
+
+**Star field / sequins**: `StarField.tsx` renders 55 twinkling CSS stars + 3 shooting stars, visible only in dark mode. Login page has 6 animated sparkle rings (sequin effect). Logo star has CSS `pulseGlow` animation.
+
+**Glass morphism**: Login card uses `backdrop-blur-xl` with translucent `bg-njoum-card/80`. Topbar uses `backdrop-blur` glassmorphism.
+
+**Dark mode cascade**: `.dark .bg-white` override in `globals.css` means all existing pages go dark without file-by-file edits. Colored `bg-*-50` chips get 12% opacity treatment.
+
+| File | Change |
+|---|---|
+| `apps/web/tailwind.config.ts` | `darkMode:'class'`, CSS var colors, new animation keyframes |
+| `apps/web/app/globals.css` | CSS vars light/dark, star animations, bg-white override, glassmorphism, sparkle, card hover |
+| `apps/web/lib/i18n.ts` | NEW — AR/EN translation object |
+| `apps/web/components/StarField.tsx` | NEW — 55-star twinkling field + 3 shooting stars |
+| `apps/web/components/Topbar.tsx` | NEW — top header: logo, theme toggle, language toggle, user avatar dropdown |
+| `apps/web/components/DashboardShell.tsx` | NEW — client wrapper: manages sidebar open/closed + passes state to Topbar+Sidebar |
+| `apps/web/components/Sidebar.tsx` | REWRITE — collapsible, SVG icons, gradient active state, dark mode, CSS logical properties |
+| `apps/web/app/layout.tsx` | Added FOUC-prevention inline script, `suppressHydrationWarning` |
+| `apps/web/app/dashboard/layout.tsx` | Now uses `<DashboardShell>` (server component passes email to client shell) |
+| `apps/web/app/login/page.tsx` | REWRITE — StarField bg, 6 sparkle rings, glass card, gradient logo star, theme toggle |
 
 #### Web CRUD & security pass (2026-06-12)
 

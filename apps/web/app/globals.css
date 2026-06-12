@@ -2,20 +2,293 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES — Light / Dark
+   ═══════════════════════════════════════════════════════════ */
 :root {
-  --primary: #B5586A;
-  --accent:  #C8956A;
-  --depth:   #7A4E7A;
+  --njoum-bg:      #FDF6F0;
+  --njoum-surface: #FFFFFF;
+  --njoum-card:    #FFFFFF;
+  --njoum-border:  #E8D5D0;
+  --njoum-text:    #2A1520;
+  --njoum-muted:   #8A6070;
+  --njoum-input:   #F7EEEA;
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 72px;
+  --topbar-height: 64px;
 }
 
+.dark {
+  --njoum-bg:      #0D0719;
+  --njoum-surface: #150C22;
+  --njoum-card:    #1C1030;
+  --njoum-border:  #2D1B45;
+  --njoum-text:    #EDE0F8;
+  --njoum-muted:   #9D84B7;
+  --njoum-input:   #1A0D2E;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════ */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Disable transition on page load to avoid FOUC */
+.no-transition * { transition: none !important; }
+
 body {
-  background-color: #F8F4F6;
-  color: #2A1520;
+  background-color: var(--njoum-bg);
+  color: var(--njoum-text);
   font-family: Inter, Nunito, system-ui, sans-serif;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #E8D5D0; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #B5586A; }
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE — Cascade overrides for existing pages
+   ═══════════════════════════════════════════════════════════ */
+.dark .bg-white {
+  background-color: var(--njoum-card);
+}
+
+.dark .bg-gray-50,
+.dark .bg-njoum-bg {
+  background-color: var(--njoum-bg);
+}
+
+/* Light-mode colored bg chips in dark mode get subtle treatment */
+.dark [class*="bg-red-50"]     { background-color: rgba(239,68,68,0.12) !important; }
+.dark [class*="bg-blue-50"]    { background-color: rgba(59,130,246,0.12) !important; }
+.dark [class*="bg-green-50"]   { background-color: rgba(34,197,94,0.12) !important; }
+.dark [class*="bg-amber-50"]   { background-color: rgba(245,158,11,0.12) !important; }
+.dark [class*="bg-teal-50"]    { background-color: rgba(20,184,166,0.12) !important; }
+.dark [class*="bg-orange-50"]  { background-color: rgba(249,115,22,0.12) !important; }
+.dark [class*="bg-pink-50"]    { background-color: rgba(236,72,153,0.12) !important; }
+.dark [class*="bg-purple-50"]  { background-color: rgba(168,85,247,0.12) !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════ */
+::-webkit-scrollbar               { width: 5px; height: 5px; }
+::-webkit-scrollbar-track         { background: transparent; }
+::-webkit-scrollbar-thumb         { background: var(--njoum-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover   { background: #B5586A; }
+
+/* ═══════════════════════════════════════════════════════════
+   STAR FIELD — only visible in dark mode
+   ═══════════════════════════════════════════════════════════ */
+.star-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.dark .star-field {
+  opacity: 1;
+}
+
+/* Shooting stars */
+@keyframes shooting {
+  0%   { transform: translateX(0) translateY(0) rotate(-35deg); opacity: 0;   width: 0; }
+  2%   { opacity: 0.8; width: 80px; }
+  20%  { transform: translateX(-350px) translateY(180px) rotate(-35deg); opacity: 0; width: 0; }
+  100% { transform: translateX(-350px) translateY(180px) rotate(-35deg); opacity: 0; width: 0; }
+}
+
+.shooting-star {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+  border-radius: 1px;
+  animation: shooting var(--dur, 6s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Twinkling star variants */
+@keyframes twinkleA {
+  0%,100% { opacity: 0.12; transform: scale(0.75); }
+  50%     { opacity: 0.95; transform: scale(1.35); }
+}
+@keyframes twinkleB {
+  0%,100% { opacity: 0.25; transform: scale(1); }
+  55%     { opacity: 0.85; transform: scale(1.2); }
+}
+@keyframes twinkleC {
+  0%,100% { opacity: 0.08; transform: scale(0.9); }
+  38%     { opacity: 1;    transform: scale(1.5); }
+}
+
+.star-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  animation-fill-mode: both;
+}
+.star-dot.a { animation: twinkleA var(--dur, 3s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+.star-dot.b { animation: twinkleB var(--dur, 4s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+.star-dot.c { animation: twinkleC var(--dur, 5s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+
+/* ═══════════════════════════════════════════════════════════
+   GLOW EFFECTS & GRADIENTS
+   ═══════════════════════════════════════════════════════════ */
+.gradient-text {
+  background: linear-gradient(135deg, #B5586A, #C8956A, #7A4E7A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #B5586A, #7A4E7A);
+}
+
+.gradient-border-card {
+  position: relative;
+  border-radius: 16px;
+  background: var(--njoum-card);
+}
+.dark .gradient-border-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, rgba(181,88,106,0.4), rgba(122,78,122,0.4), rgba(200,149,106,0.2));
+  z-index: -1;
+}
+
+/* Shimmer effect for loading/hover */
+@keyframes shimmer {
+  0%   { background-position: -400% center; }
+  100% { background-position:  400% center; }
+}
+
+.shimmer-btn {
+  background: linear-gradient(
+    90deg,
+    #B5586A 0%,
+    #7A4E7A 40%,
+    #C8956A 60%,
+    #B5586A 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(181,88,106,0.18);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════════════ */
+.sidebar-transition {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+}
+
+.content-shift {
+  transition: padding-inline-start 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Nav item active glow */
+.nav-item-active {
+  background: linear-gradient(135deg, rgba(181,88,106,0.25), rgba(122,78,122,0.25));
+  position: relative;
+}
+.dark .nav-item-active {
+  background: linear-gradient(135deg, rgba(181,88,106,0.2), rgba(122,78,122,0.2));
+  box-shadow: inset 0 0 0 1px rgba(181,88,106,0.2);
+}
+.nav-item-active::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: linear-gradient(#B5586A, #7A4E7A);
+  border-radius: 0 3px 3px 0;
+}
+[dir='ltr'] .nav-item-active::after {
+  border-radius: 3px 0 0 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOPBAR GLASS
+   ═══════════════════════════════════════════════════════════ */
+.topbar-glass {
+  background: rgba(253, 246, 240, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--njoum-border);
+}
+.dark .topbar-glass {
+  background: rgba(13, 7, 25, 0.85);
+  border-bottom: 1px solid var(--njoum-border);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FORM INPUTS — auto dark mode
+   ═══════════════════════════════════════════════════════════ */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--njoum-input) !important;
+  color: var(--njoum-text);
+  border-color: var(--njoum-border);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--njoum-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE AUTO DARK
+   ═══════════════════════════════════════════════════════════ */
+.dark table { color: var(--njoum-text); }
+.dark thead  { background-color: var(--njoum-surface) !important; }
+.dark tr:hover { background-color: rgba(255,255,255,0.03) !important; }
+.dark .divide-y > * + * { border-color: var(--njoum-border) !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN PAGE — Sequin sparkle circles
+   ═══════════════════════════════════════════════════════════ */
+@keyframes sparkle {
+  0%,100% { transform: scale(0) rotate(0deg);   opacity: 0; }
+  50%      { transform: scale(1) rotate(180deg); opacity: 1; }
+}
+
+.sparkle-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(181,88,106,0.4);
+  animation: sparkle var(--dur, 4s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRADIENT PULSE — logo star
+   ═══════════════════════════════════════════════════════════ */
+@keyframes pulseGlow {
+  0%,100% { box-shadow: 0 0 10px rgba(181,88,106,0.35); }
+  50%     { box-shadow: 0 0 28px rgba(181,88,106,0.8), 0 0 50px rgba(122,78,122,0.3); }
+}
+
+.logo-star {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
