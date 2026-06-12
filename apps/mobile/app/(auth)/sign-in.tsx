@@ -7,22 +7,30 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+import Svg, { Path } from 'react-native-svg';
+import { extractCodeFromCallbackUrl, extractTokensFromCallbackUrl, buildUserUpsertPayload } from '@njoum/shared';
 import { supabase } from '../../services/supabase';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { StarField } from '../../components/home/StarField';
 import { Illustration } from '../../components/home/Illustration';
 import { Spacing, FontSize, FontWeight, Radius } from '../../constants/theme';
 
+// Required by expo-web-browser to dismiss the auth session on return.
+WebBrowser.maybeCompleteAuthSession();
+
 export default function SignInScreen() {
   const router                   = useRouter();
   const { isDark, colors, lang } = useColorScheme();
   const isRTL                    = lang === 'ar';
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [showPwd,  setShowPwd]  = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [email,         setEmail]         = useState('');
+  const [password,      setPassword]      = useState('');
+  const [showPwd,       setShowPwd]       = useState(false);
+  const [loading,       setLoading]       = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error,         setError]         = useState('');
 
   const pwdRef = useRef<TI>(null);
 
@@ -58,6 +66,75 @@ export default function SignInScreen() {
 
     router.replace('/(tabs)');
   };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      // This redirect URI must also be added in Supabase dashboard →
+      // Authentication → URL Configuration → Redirect URLs.
+      const redirectUrl = makeRedirectUri({ scheme: 'njoum', path: 'auth/callback' });
+
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo:          redirectUrl,
+          skipBrowserRedirect: true,   // we open the browser ourselves below
+        },
+      });
+
+      if (oauthError || !data.url) {
+        setError(isRTL ? 'فشل الاتصال بـ Google. حاولي مرة أخرى.' : 'Failed to connect to Google. Please try again.');
+        return;
+      }
+
+      // Open the Google consent screen in an in-app browser tab.
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (result.type !== 'success') return;   // user cancelled or browser dismissed
+
+      const callbackUrl = result.url;
+
+      // Primary: PKCE flow — ?code=<value> in the query string.
+      const code = extractCodeFromCallbackUrl(callbackUrl);
+
+      if (code) {
+        const { data: sd, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) { setError(exchangeError.message); return; }
+        if (sd.user) await upsertProfile(sd.user.id, sd.user.email, sd.user.user_metadata);
+        router.replace('/(tabs)');
+        return;
+      }
+
+      // Fallback: implicit flow — #access_token=… in the hash fragment.
+      const tokens = extractTokensFromCallbackUrl(callbackUrl);
+
+      if (tokens) {
+        const { data: sd, error: setErr } = await supabase.auth.setSession({
+          access_token: tokens.accessToken, refresh_token: tokens.refreshToken,
+        });
+        if (setErr) { setError(setErr.message); return; }
+        if (sd.user) await upsertProfile(sd.user.id, sd.user.email, sd.user.user_metadata);
+        router.replace('/(tabs)');
+      }
+    } catch {
+      setError(isRTL ? 'حدث خطأ غير متوقع. حاولي مرة أخرى.' : 'An unexpected error occurred. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  async function upsertProfile(
+    id:    string,
+    email?: string | null,
+    meta?:  Record<string, unknown> | null,
+  ) {
+    await supabase.from('users').upsert(
+      buildUserUpsertPayload(id, email, meta),
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
@@ -120,6 +197,41 @@ export default function SignInScreen() {
               </View>
             )}
 
+            {/* ── Google Sign-In button ── */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.googleBtn,
+                {
+                  borderColor:     isDark ? '#2C1C48'      : '#E8D5D0',
+                  backgroundColor: isDark ? colors.surface : colors.background,
+                  opacity: pressed || googleLoading ? 0.75 : 1,
+                },
+              ]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
+              accessibilityRole="button"
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <>
+                  <GoogleIcon />
+                  <Text style={[styles.googleBtnText, { color: colors.text }]}>
+                    {isRTL ? 'الدخول بحساب Google' : 'Continue with Google'}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* ── Divider ── */}
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: isDark ? '#2C1C48' : '#E8D5D0' }]} />
+              <Text style={[styles.dividerText, { color: colors.textMuted }]}>
+                {isRTL ? 'أو' : 'or'}
+              </Text>
+              <View style={[styles.dividerLine, { backgroundColor: isDark ? '#2C1C48' : '#E8D5D0' }]} />
+            </View>
+
             {/* Email */}
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.text, textAlign: isRTL ? 'right' : 'left' }]}>
@@ -172,11 +284,11 @@ export default function SignInScreen() {
               </View>
             </View>
 
-            {/* Login button */}
+            {/* Email/password login button */}
             <Pressable
               style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.85 : 1 }]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || googleLoading}
               accessibilityRole="button"
             >
               <LinearGradient
@@ -207,6 +319,17 @@ export default function SignInScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
+      <Path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+      <Path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+      <Path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+      <Path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </Svg>
   );
 }
 
@@ -256,6 +379,22 @@ const styles = StyleSheet.create({
     borderLeftColor: '#E53E3E',
   },
   errorText: { fontSize: FontSize.sm, color: '#E53E3E' },
+
+  googleBtn: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    justifyContent:  'center',
+    gap:             Spacing.sm,
+    borderWidth:     1.5,
+    borderRadius:    Radius.lg,
+    paddingVertical: Spacing.sm + 4,
+    minHeight:       52,
+  },
+  googleBtnText: { fontSize: FontSize.md, fontWeight: FontWeight.semibold },
+
+  divider:     { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: FontSize.xs },
 
   field: { gap: 6 },
   label: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },

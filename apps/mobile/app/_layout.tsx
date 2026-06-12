@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { I18nManager } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryPersister } from '../services/queryPersister';
+import { supabase } from '../services/supabase';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -15,17 +16,37 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5,
       retry: 2,
-      // Offline-capable queries (hotlines, activities, videos) set gcTime to Infinity
-      // in their own queryFn options so they survive offline app restarts.
-      gcTime: 1000 * 60 * 60 * 24 * 7,  // 7-day default GC — matches persister max age
+      gcTime: 1000 * 60 * 60 * 24 * 7,
     },
   },
 });
 
 export default function RootLayout() {
+  const router   = useRouter();
+  const segments = useSegments();
+
   useEffect(() => {
     I18nManager.allowRTL(true);
     SplashScreen.hideAsync();
+  }, []);
+
+  // Listen for auth state changes so Google OAuth (and token refresh) are
+  // handled globally without relying solely on sign-in screen navigation.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const inAuthGroup = segments[0] === '(auth)';
+
+      if (event === 'SIGNED_IN' && session && inAuthGroup) {
+        // User just authenticated — move them into the app.
+        router.replace('/(tabs)');
+      } else if (event === 'SIGNED_OUT') {
+        // Session ended — send to sign-in.
+        router.replace('/(auth)/sign-in');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -35,7 +56,7 @@ export default function RootLayout() {
           client={queryClient}
           persistOptions={{
             persister: queryPersister,
-            maxAge:    1000 * 60 * 60 * 24 * 7,   // 7 days
+            maxAge:    1000 * 60 * 60 * 24 * 7,
           }}
         >
           <Stack screenOptions={{ headerShown: false }}>

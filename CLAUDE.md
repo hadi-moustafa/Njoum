@@ -752,6 +752,17 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 - Whole-app redesign complete (2026-06-11) — star/gradient design language from home screen applied to all 25+ screens
 - Phase 8 complete (2026-06-11) — SOS OpenStreetMap/WebView tracking (free, no API key), AsyncStorage offline cache, cycle reminder cron, certificate download, real video player, trigger verification
 - Mentor system overhaul complete (2026-06-11) — girl chooses specific mentor, mentor content feed, mentor-role mobile dashboard, web admin mentors page
+- Google Sign-In fixed end-to-end (2026-06-12) — DB trigger auto-creates public.users on auth sign-up, web callback upserts user + fixes Vercel origin header, mobile sign-in adds Google PKCE OAuth button, root layout listens to onAuthStateChange
+
+#### Google Sign-In fix file inventory (2026-06-12)
+
+| File | Change |
+|---|---|
+| `supabase/migrations/20260612000001_handle_new_auth_user_trigger.sql` | NEW — trigger on `auth.users` INSERT that auto-creates a `public.users` row with `role:'girl'`, pulling `full_name` and `avatar_url` from Google metadata |
+| `apps/web/app/auth/callback/route.ts` | Upserts user to `public.users` after code exchange (safety net if trigger isn't yet installed); fixes origin resolution using `x-forwarded-proto`/`x-forwarded-host` headers for Vercel; adds `oauth_error` redirect |
+| `apps/web/app/login/page.tsx` | Refactored to use `useSearchParams()` hook inside a `<Suspense>` boundary (Next.js best practice for client components); added `oauth_error` error message |
+| `apps/mobile/app/(auth)/sign-in.tsx` | Added Google Sign-In button using `expo-web-browser` + `expo-auth-session`; handles PKCE code exchange (`exchangeCodeForSession`) with implicit flow fallback; upserts `public.users` row after successful auth |
+| `apps/mobile/app/_layout.tsx` | Added `supabase.auth.onAuthStateChange` listener; navigates to `/(tabs)` on `SIGNED_IN` (when currently in auth group) and to `/(auth)/sign-in` on `SIGNED_OUT` |
 
 #### Phase 8 file inventory (2026-06-11)
 
