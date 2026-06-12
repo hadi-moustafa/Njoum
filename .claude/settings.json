@@ -57,7 +57,8 @@
       "Bash(node -e ' *)",
       "Bash(git -C /home/HM/code/Njoum diff --stat pnpm-lock.yaml)",
       "Bash(git -C /home/HM/code/Njoum add pnpm-lock.yaml)",
-      "Bash(git -C /home/HM/code/Njoum commit -m ' *)"
+      "Bash(git -C /home/HM/code/Njoum commit -m ' *)",
+      "Bash(git -C /home/HM/code/Njoum add vercel.json)"
     ],
     "additionalDirectories": [
       "/home/HM/code/Njoum",
