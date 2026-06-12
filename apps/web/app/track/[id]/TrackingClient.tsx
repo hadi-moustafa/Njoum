@@ -97,6 +97,19 @@ export default function TrackingClient({
             {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
           </span>
         )}
+        {coords && (
+          <a
+            href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-red-700 text-white text-xs font-semibold hover:bg-red-800 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+              <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.099 3.5-4.599 3.5-7.327 0-4.543-3.69-8.25-8.25-8.25S3.75 5.457 3.75 10c0 2.728 1.556 5.228 3.5 7.327a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" clipRule="evenodd" />
+            </svg>
+            فتح في خرائط Google
+          </a>
+        )}
       </div>
 
       {/* Map */}
