@@ -54,7 +54,10 @@
       "Bash(npx tsx *)",
       "Bash(node -e \"require\\('./src/services/cycleReminderJob'\\)\")",
       "Bash(node -e \"require\\('node-cron'\\)\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git -C /home/HM/code/Njoum diff --stat pnpm-lock.yaml)",
+      "Bash(git -C /home/HM/code/Njoum add pnpm-lock.yaml)",
+      "Bash(git -C /home/HM/code/Njoum commit -m ' *)"
     ],
     "additionalDirectories": [
       "/home/HM/code/Njoum",
