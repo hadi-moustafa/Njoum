@@ -56,8 +56,23 @@ export async function sendWhatsAppMessage(payload: WaMessagePayload): Promise<vo
   );
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`WhatsApp API error ${res.status}: ${JSON.stringify(err)}`);
+    const body = await res.json().catch(() => ({})) as any;
+    const meta = body?.error ?? {};
+
+    /* Give actionable messages for the most common Meta error codes */
+    let hint = '';
+    if (meta.type === 'OAuthException') {
+      if (meta.code === 190)       hint = ' — token expired: regenerate at developers.facebook.com';
+      else if (meta.code === 1)    hint = ' — token invalid or not authorised (likely expired 24h test token)';
+      else if (meta.code === 10)   hint = ' — app lacks whatsapp_business_messaging permission';
+    } else if (res.status === 400) {
+      if (meta.code === 131030)    hint = ' — recipient not in test contact list (add in Meta dashboard)';
+      else if (meta.code === 131026) hint = ' — phone number not on WhatsApp';
+    }
+
+    throw new Error(
+      `WhatsApp API error ${res.status}${hint}: ${meta.message ?? JSON.stringify(body)}`
+    );
   }
 }
 
