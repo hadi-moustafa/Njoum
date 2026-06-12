@@ -48,7 +48,13 @@ CREATE POLICY "mentees_read_mentor_activities" ON activities
     created_by = auth.uid()
   );
 
--- 4. RLS for events: mentors can create events
+-- 4. Ensure events has created_by (may be missing if original migration was partial)
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_events_created_by ON events(created_by);
+
+-- RLS for events: mentors can create events
 CREATE POLICY "mentors_insert_events" ON events
   FOR INSERT
   WITH CHECK (
