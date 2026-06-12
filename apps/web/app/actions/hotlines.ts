@@ -24,6 +24,15 @@ export async function toggleHotline(id: string, isActive: boolean) {
   revalidatePath('/dashboard/hotlines');
 }
 
+export async function updateHotline(id: string, data: {
+  name: string; phone: string; category: string; country: string; is_verified: boolean;
+}): Promise<{ success: true } | { error: string }> {
+  const { error } = await supabaseAdmin.from('hotlines').update(data).eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/dashboard/hotlines');
+  return { success: true };
+}
+
 export async function deleteHotline(id: string) {
   const { error } = await supabaseAdmin.from('hotlines').delete().eq('id', id);
   if (error) throw new Error(error.message);

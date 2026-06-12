@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import Link from 'next/link';
 import ContentActions from './ContentActions';
 import NewQuizButton from './NewQuizButton';
+import DeleteQuizButton from './DeleteQuizButton';
+import VideoForm from './VideoForm';
+import VideoActions from './VideoActions';
 
 const MODULE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   safety:       { label: 'السلامة',          icon: '🛡️', color: 'bg-blue-50 text-blue-700 border-blue-200'     },
@@ -14,6 +17,10 @@ const MODULE_CONFIG: Record<string, { label: string; icon: string; color: string
 
 const LANG_LABELS: Record<string, string> = { ar: 'العربية', en: 'English', fr: 'Français' };
 const DIFF_LABELS: Record<string, string> = { beginner: 'مبتدئ', intermediate: 'متوسط', advanced: 'متقدم' };
+const SCENARIO_LABELS: Record<string, string> = {
+  grabbed: 'إمساك', followed: 'متابعة', attacked: 'اعتداء',
+  online_safety: 'إلكتروني', general: 'عام',
+};
 
 function ModuleBadge({ module }: { module: string }) {
   const cfg = MODULE_CONFIG[module] ?? { label: module, icon: '📄', color: 'bg-gray-100 text-gray-600 border-gray-200' };
@@ -39,7 +46,7 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('self_defence_videos')
-      .select('id, title, scenario_category, is_published, duration_seconds, created_at')
+      .select('id, title, description, scenario_category, video_url, thumbnail_url, duration_seconds, is_offline_capable, is_published, created_at')
       .order('created_at', { ascending: false }),
   ]);
 
@@ -144,6 +151,7 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
                   <th className="text-right px-6 py-3 text-njoum-muted font-medium">القسم</th>
                   <th className="text-right px-6 py-3 text-njoum-muted font-medium">الصعوبة</th>
                   <th className="text-right px-6 py-3 text-njoum-muted font-medium">التاريخ</th>
+                  <th className="px-6 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-njoum-border">
@@ -154,6 +162,9 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
                     <td className="px-6 py-3 text-xs text-njoum-muted">{DIFF_LABELS[q.difficulty] ?? q.difficulty}</td>
                     <td className="px-6 py-3 text-njoum-muted text-xs">
                       {new Date(q.created_at).toLocaleDateString('ar-LB', { dateStyle: 'short' })}
+                    </td>
+                    <td className="px-6 py-3">
+                      <DeleteQuizButton id={q.id} />
                     </td>
                   </tr>
                 ))}
@@ -168,34 +179,43 @@ export default async function ContentPage({ searchParams }: { searchParams: { ta
 
       {/* Videos tab */}
       {tab === 'videos' && (
-        <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-njoum-bg"><tr>
-              <th className="text-right px-6 py-3 text-njoum-muted font-medium">العنوان</th>
-              <th className="text-right px-6 py-3 text-njoum-muted font-medium">الفئة</th>
-              <th className="text-right px-6 py-3 text-njoum-muted font-medium">المدة</th>
-              <th className="text-right px-6 py-3 text-njoum-muted font-medium">الحالة</th>
-            </tr></thead>
-            <tbody className="divide-y divide-njoum-border">
-              {videos.map((v: any) => (
-                <tr key={v.id} className="hover:bg-njoum-bg/40 transition-colors">
-                  <td className="px-6 py-3 font-medium text-njoum-text">{v.title}</td>
-                  <td className="px-6 py-3 text-njoum-muted text-xs">{v.scenario_category}</td>
-                  <td className="px-6 py-3 text-njoum-muted text-xs">
-                    {v.duration_seconds ? `${Math.floor(v.duration_seconds / 60)} دقيقة` : '—'}
-                  </td>
-                  <td className="px-6 py-3">
-                    {v.is_published
-                      ? <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">منشور</span>
-                      : <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">مسودة</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {videos.length === 0 && (
-            <div className="py-16 text-center"><p className="text-4xl mb-2">🎬</p><p className="text-njoum-muted text-sm">لا توجد فيديوهات بعد.</p></div>
-          )}
+        <div>
+          <div className="flex justify-end mb-4">
+            <VideoForm />
+          </div>
+          <div className="bg-white rounded-2xl border border-njoum-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-njoum-bg"><tr>
+                <th className="text-right px-6 py-3 text-njoum-muted font-medium">العنوان</th>
+                <th className="text-right px-6 py-3 text-njoum-muted font-medium">الفئة</th>
+                <th className="text-right px-6 py-3 text-njoum-muted font-medium">المدة</th>
+                <th className="text-right px-6 py-3 text-njoum-muted font-medium">الحالة</th>
+                <th className="px-6 py-3" />
+              </tr></thead>
+              <tbody className="divide-y divide-njoum-border">
+                {videos.map((v: any) => (
+                  <tr key={v.id} className="hover:bg-njoum-bg/40 transition-colors">
+                    <td className="px-6 py-3 font-medium text-njoum-text">{v.title}</td>
+                    <td className="px-6 py-3 text-njoum-muted text-xs">{SCENARIO_LABELS[v.scenario_category] ?? v.scenario_category}</td>
+                    <td className="px-6 py-3 text-njoum-muted text-xs">
+                      {v.duration_seconds ? `${Math.floor(v.duration_seconds / 60)} دقيقة` : '—'}
+                    </td>
+                    <td className="px-6 py-3">
+                      {v.is_published
+                        ? <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">منشور</span>
+                        : <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">مسودة</span>}
+                    </td>
+                    <td className="px-6 py-3">
+                      <VideoActions video={v} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {videos.length === 0 && (
+              <div className="py-16 text-center"><p className="text-4xl mb-2">🎬</p><p className="text-njoum-muted text-sm">لا توجد فيديوهات بعد.</p></div>
+            )}
+          </div>
         </div>
       )}
     </div>

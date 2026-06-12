@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import EventForm from './EventForm';
 import DeleteEventButton from './DeleteEventButton';
+import EditEventButton from './EditEventButton';
 
 const TYPE_LABELS: Record<string, string> = {
   workshop:          'ورشة عمل',
@@ -24,11 +25,13 @@ export default async function EventsPage({ searchParams }: { searchParams: { tab
       .from('events')
       .select('id, title, description, event_type, starts_at, ends_at, country, region, is_online, url, created_at')
       .gte('starts_at', now)
+      .is('deleted_at', null)
       .order('starts_at', { ascending: true }),
     supabaseAdmin
       .from('events')
       .select('id, title, event_type, starts_at, is_online')
       .lt('starts_at', now)
+      .is('deleted_at', null)
       .order('starts_at', { ascending: false })
       .limit(20),
   ]);
@@ -81,7 +84,8 @@ export default async function EventsPage({ searchParams }: { searchParams: { tab
           {upcoming.map((e: any) => (
             <div key={e.id} className="bg-white rounded-2xl border border-njoum-border p-5">
               <div className="flex items-start justify-between">
-                <div className="flex gap-3">
+                <div className="flex gap-2">
+                  <EditEventButton event={e} />
                   <DeleteEventButton id={e.id} />
                 </div>
                 <div className="text-right">

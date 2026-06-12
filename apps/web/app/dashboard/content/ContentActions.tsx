@@ -1,5 +1,6 @@
 'use client';
 import { useTransition } from 'react';
+import Link from 'next/link';
 import { togglePublish, deleteArticle } from '@/app/actions/content';
 import { toast } from 'sonner';
 
@@ -27,6 +28,10 @@ export default function ContentActions({ id, isPublished }: { id: string; isPubl
 
   return (
     <div className="flex items-center gap-1">
+      <Link href={`/dashboard/content/edit?id=${id}`}
+        className="text-xs px-2 py-1.5 rounded-lg text-primary hover:bg-primary/10 transition">
+        ✏️
+      </Link>
       <button onClick={handleToggle} disabled={isPending}
         className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
           isPublished

@@ -2,6 +2,8 @@ import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import HotlineForm from './HotlineForm';
 import HotlineToggle from './HotlineToggle';
+import EditHotlineButton from './EditHotlineButton';
+import DeleteHotlineButton from './DeleteHotlineButton';
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   police:           { label: 'شرطة',            icon: '🚔', color: 'bg-blue-50 text-blue-700 border-blue-200'     },
@@ -94,6 +96,7 @@ export default async function HotlinesPage({ searchParams }: { searchParams: { c
                   <th className="text-right px-4 py-3 text-njoum-muted font-medium">الفئة</th>
                   <th className="text-right px-4 py-3 text-njoum-muted font-medium">موثّق</th>
                   <th className="text-right px-4 py-3 text-njoum-muted font-medium">الحالة</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-njoum-border">
@@ -110,6 +113,15 @@ export default async function HotlinesPage({ searchParams }: { searchParams: { c
                     </td>
                     <td className="px-4 py-3">
                       <HotlineToggle id={h.id} isActive={h.is_active} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <EditHotlineButton hotline={{
+                          id: h.id, name: h.name, phone: h.phone,
+                          category: h.category, country: h.country, is_verified: h.is_verified,
+                        }} />
+                        <DeleteHotlineButton id={h.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

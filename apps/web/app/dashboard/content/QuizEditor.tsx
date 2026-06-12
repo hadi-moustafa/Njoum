@@ -1,41 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createQuiz, saveQuizQuestions } from '@/app/actions/quizzes';
 
 interface QuizFormData {
-  title: string;
-  module: string;
+  title:      string;
+  module:     string;
   difficulty: string;
-  language: string;
+  language:   string;
 }
 
 interface QuestionFormData {
-  question_text: string;
-  options: string[];
+  question_text:        string;
+  options:              string[];
   correct_option_index: number;
-  explanation: string;
-  sort_order: number;
+  explanation:          string;
+  sort_order:           number;
 }
 
-const MODULES = ['safety', 'mental_health', 'wellness', 'self_defence', 'legal'];
+const MODULES     = ['safety', 'mental_health', 'wellness', 'self_defence', 'legal'];
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
-const LANGUAGES = ['ar', 'en', 'fr'];
+const LANGUAGES   = ['ar', 'en', 'fr'];
 
 const MODULE_LABELS: Record<string, string> = {
   safety: 'السلامة', mental_health: 'الصحة النفسية',
   wellness: 'العافية', self_defence: 'الدفاع عن النفس', legal: 'القانون',
 };
-
 const DIFFICULTY_LABELS: Record<string, string> = {
   beginner: 'مبتدئ', intermediate: 'متوسط', advanced: 'متقدم',
 };
 
 export default function QuizEditor({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState<'meta' | 'questions' | 'done'>('meta');
+  const [step,   setStep]   = useState<'meta' | 'questions' | 'done'>('meta');
   const [quizId, setQuizId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error,  setError]  = useState<string | null>(null);
 
   const [meta, setMeta] = useState<QuizFormData>({
     title: '', module: 'safety', difficulty: 'beginner', language: 'ar',
@@ -50,41 +49,25 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
     if (!meta.title.trim()) { setError('العنوان مطلوب'); return; }
     setSaving(true); setError(null);
 
-    const { data, error: err } = await supabaseAdmin
-      .from('safety_quizzes')
-      .insert({ ...meta, is_active: false })
-      .select('id')
-      .single();
+    const result = await createQuiz(meta);
 
     setSaving(false);
-    if (err || !data) { setError(err?.message ?? 'خطأ'); return; }
-    setQuizId(data.id);
+    if ('error' in result) { setError(result.error); return; }
+    setQuizId(result.quizId);
     setStep('questions');
   }
 
   // ── Step 2: save questions ─────────────────────────────────
-  async function saveQuestions() {
+  async function saveQuestionsHandler() {
     const invalid = questions.find(q => !q.question_text.trim() || q.options.some(o => !o.trim()));
     if (invalid) { setError('يرجى ملء جميع الأسئلة والخيارات'); return; }
 
     setSaving(true); setError(null);
 
-    const rows = questions.map((q, i) => ({
-      quiz_id:               quizId,
-      question_text:         q.question_text,
-      options:               q.options,
-      correct_option_index:  q.correct_option_index,
-      explanation:           q.explanation || null,
-      sort_order:            i,
-    }));
-
-    const { error: err } = await supabaseAdmin.from('quiz_questions').insert(rows);
-    if (err) { setSaving(false); setError(err.message); return; }
-
-    // Activate the quiz
-    await supabaseAdmin.from('safety_quizzes').update({ is_active: true }).eq('id', quizId!);
+    const result = await saveQuizQuestions(quizId!, questions);
 
     setSaving(false);
+    if ('error' in result) { setError(result.error); return; }
     setStep('done');
   }
 
@@ -99,7 +82,7 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
     setQuestions(prev => prev.filter((_, i) => i !== idx));
   }
 
-  function updateQuestion(idx: number, field: keyof QuestionFormData, value: any) {
+  function updateQuestion(idx: number, field: keyof QuestionFormData, value: unknown) {
     setQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
   }
 
@@ -112,7 +95,6 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
     }));
   }
 
-  // ── Done ──────────────────────────────────────────────────
   if (step === 'done') {
     return (
       <div className="text-center py-8">
@@ -128,7 +110,7 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
     <div className="max-h-[80vh] overflow-y-auto">
       {/* Progress */}
       <div className="flex gap-2 mb-6">
-        {(['meta', 'questions'] as const).map((s, i) => (
+        {(['meta', 'questions'] as const).map(s => (
           <div key={s} className={`flex-1 h-1.5 rounded-full ${step === s || (step === 'questions' && s === 'meta') ? 'bg-primary' : 'bg-gray-200'}`} />
         ))}
       </div>
@@ -175,7 +157,8 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 border rounded-lg px-4 py-2 text-sm">إلغاء</button>
-            <button onClick={saveMeta} disabled={saving} className="flex-1 bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
+            <button onClick={saveMeta} disabled={saving}
+              className="flex-1 bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
               {saving ? 'جارٍ الحفظ…' : 'التالي: الأسئلة'}
             </button>
           </div>
@@ -228,13 +211,15 @@ export default function QuizEditor({ onClose }: { onClose: () => void }) {
             </div>
           ))}
 
-          <button onClick={addQuestion} className="w-full border-2 border-dashed border-primary text-primary rounded-xl py-3 text-sm mb-4 hover:bg-primary/5">
+          <button onClick={addQuestion}
+            className="w-full border-2 border-dashed border-primary text-primary rounded-xl py-3 text-sm mb-4 hover:bg-primary/5">
             + إضافة سؤال
           </button>
 
           <div className="flex gap-3">
             <button onClick={() => setStep('meta')} className="flex-1 border rounded-lg px-4 py-2 text-sm">رجوع</button>
-            <button onClick={saveQuestions} disabled={saving} className="flex-1 bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
+            <button onClick={saveQuestionsHandler} disabled={saving}
+              className="flex-1 bg-primary text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50">
               {saving ? 'جارٍ النشر…' : `نشر الاختبار (${questions.length} أسئلة)`}
             </button>
           </div>

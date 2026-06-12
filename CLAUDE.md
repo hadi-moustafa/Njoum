@@ -753,6 +753,72 @@ OpenAPI 3.0 spec is auto-generated and published at `/api/docs` (Swagger UI).
 - Phase 8 complete (2026-06-11) — SOS OpenStreetMap/WebView tracking (free, no API key), AsyncStorage offline cache, cycle reminder cron, certificate download, real video player, trigger verification
 - Mentor system overhaul complete (2026-06-11) — girl chooses specific mentor, mentor content feed, mentor-role mobile dashboard, web admin mentors page
 - Google Sign-In fixed end-to-end (2026-06-12) — DB trigger auto-creates public.users on auth sign-up, web callback upserts user + fixes Vercel origin header, mobile sign-in adds Google PKCE OAuth button, root layout listens to onAuthStateChange
+- Web CRUD complete (2026-06-12) — full edit+delete across all dashboard sections, video create/edit/delete, quiz bug fixes, supabaseAdmin security audit
+
+#### Web CRUD & security pass (2026-06-12)
+
+**Security fix:** All client components (`'use client'`) now use Server Actions for mutations — `supabaseAdmin` is never imported in the browser. This prevents the `supabaseKey is required` runtime crash.
+
+| File | Change |
+|---|---|
+| `apps/web/app/actions/content.ts` | Added `updateArticle`, `createVideo`, `updateVideo`, `toggleVideoPublish`, `deleteVideo` Server Actions |
+| `apps/web/app/actions/hotlines.ts` | Added `updateHotline` Server Action |
+| `apps/web/app/actions/events.ts` | Added `updateEvent` Server Action |
+| `apps/web/app/actions/quizzes.ts` | **Full rewrite** — fixed `is_active`/`language` (columns don't exist), fixed `sort_order` → `order_index`, added `deleteQuiz`, removed bogus `update({ is_active: true })` |
+| `apps/web/app/actions/scouts.ts` | NEW — `createTroop`, `deleteTroop`, `createActivity`, `deleteActivity`, `createBadge`, `deleteBadge` |
+| `apps/web/app/dashboard/content/VideoForm.tsx` | NEW — modal form for add/edit video; calls `createVideo`/`updateVideo` |
+| `apps/web/app/dashboard/content/VideoActions.tsx` | NEW — per-row toggle publish, inline edit, delete for videos |
+| `apps/web/app/dashboard/content/DeleteQuizButton.tsx` | NEW — calls `deleteQuiz` with confirm dialog |
+| `apps/web/app/dashboard/content/ArticleEditor.tsx` | Added edit mode (optional `article` prop pre-fills form, calls `updateArticle`) |
+| `apps/web/app/dashboard/content/ContentActions.tsx` | Added edit link → `/dashboard/content/edit?id=<uuid>` |
+| `apps/web/app/dashboard/content/edit/page.tsx` | NEW — edit article Server Component at `/dashboard/content/edit` |
+| `apps/web/app/dashboard/content/page.tsx` | Wired `VideoForm` + `VideoActions` in videos tab, `DeleteQuizButton` in quizzes tab |
+| `apps/web/app/dashboard/hotlines/EditHotlineButton.tsx` | NEW — inline modal edit with `updateHotline` |
+| `apps/web/app/dashboard/hotlines/DeleteHotlineButton.tsx` | NEW — calls `deleteHotline` |
+| `apps/web/app/dashboard/hotlines/page.tsx` | Added edit + delete actions per row |
+| `apps/web/app/dashboard/events/EditEventButton.tsx` | NEW — inline modal edit with `updateEvent` |
+| `apps/web/app/dashboard/events/page.tsx` | Added `EditEventButton` per upcoming event; **bug fix**: added `.is('deleted_at', null)` filter (deleted events were appearing) |
+| `apps/web/app/dashboard/scouts/ScoutsCreate.tsx` | NEW — unified create component for troop/activity/badge, dispatches correct Server Action |
+| `apps/web/app/dashboard/scouts/DeleteScoutItem.tsx` | NEW — unified delete for troop/activity/badge |
+| `apps/web/app/dashboard/scouts/page.tsx` | Added create + delete buttons per item in all three tabs |
+
+#### Comprehensive seed data (2026-06-12)
+
+Complete rewrite of `supabase/seed.sql` covering ALL 28 tables. **Only one `super_admin`:** hadimoustafa2024@gmail.com.
+
+| Table | Records |
+|---|---|
+| `users` | 15 (1 super_admin, 2 content_admin, 1 moderator, 3 mentors, 5 girls, 1 parent, 1 banned girl) |
+| `emergency_contacts` | 10 (2–3 per girl) |
+| `hotlines` | 23 across LB, SA, AE, EG, JO |
+| `community_groups` | 6 (3 public, 3 private) |
+| `group_memberships` | 14 |
+| `posts` | 12 (mix of anonymous, flagged) |
+| `comments` | 7 |
+| `post_reactions` | 10 (heart/hug/support/star) |
+| `content_reports` | 7 (open/under_review/resolved/dismissed) |
+| `content_articles` | 14 (AR/EN/FR, published+draft, all modules) |
+| `safety_quizzes` | 5 |
+| `quiz_questions` | 13 (using correct `order_index` column) |
+| `self_defence_videos` | 7 (published+draft, various scenarios) |
+| `sos_events` | 12 (active/resolved/cancelled, various triggers) |
+| `journey_tracks` | 5 |
+| `mood_logs` | 300 (60 days × 5 users, via `generate_series`) |
+| `journal_entries` | 6 (base64 placeholder ciphertext) |
+| `menstrual_cycles` | 6 (multiple cycles per user) |
+| `cycle_reminders` | 6 |
+| `badges` | 10 (all modules) |
+| `scouts_troops` | 4 (LB + SA, all age tiers) |
+| `troop_members` | 5 |
+| `activities` | 10 (various categories, offline-capable mix) |
+| `activity_completions` | 8 |
+| `user_badges` | 8 |
+| `mentor_assignments` | 4 (active/pending/ended) |
+| `events` | 7 (5 upcoming + 2 past) |
+| `legal_guides` | 5 (AR/EN, various categories) |
+| `legal_aid_orgs` | 6 (LB/SA/AE/EG) |
+| `notification_preferences` | 14 |
+| `audit_logs` | 12 |
 
 #### Google Sign-In fix file inventory (2026-06-12)
 
@@ -1089,8 +1155,19 @@ All dashboard pages, server actions, and seed.sql have been corrected:
 | `is_free`/`city`/`website` | `is_verified`/`region`/`website_url` | `legal_aid_orgs` |
 
 **UUID format note:** PostgreSQL UUIDs only accept hex digits (0–9, a–f).
-Old seed used invalid prefixes like `h`, `g`, `p`, `r`, `q`, `t`.
-Fixed prefixes: hotlines→`aa`, groups→`cb`, posts→`cd`, reports→`de`, quizzes→`fe`, troops→`ab`.
+Seed prefixes (all valid hex): users→`00`, hotlines→`aa`, troops→`ab`, activities→`ac`, groups→`cb`, comments→`cc`, posts→`cd`, reports→`de`, articles→`a0`, badges→`b0`, videos→`bd`, sos→`e0`, events→`ea`, quizzes→`fe`, mentors→`da`.
+
+**Additional column corrections confirmed from live DB (June 2026):**
+
+| Wrong | Correct | Table |
+|---|---|---|
+| `relation` | `relationship` | `emergency_contacts` |
+| `created_at` / `started_at` | `assigned_at` | `mentor_assignments` (no `created_at`; uses `assigned_at` NOT NULL DEFAULT now()) |
+| `type` | `notification_type` | `notification_preferences` |
+| `cancelled` / `started_at` | does not exist | `journey_tracks` (has `marked_safe_at`, `started_at` DEFAULT now() — no `cancelled`) |
+| `is_enabled` | `is_active` | `cycle_reminders` |
+| `community` | not valid | `community_groups.category` check (valid: survivors/students/career/general/mental_health/custom) |
+| `is_online` / `url` | correct | `events` (these are the right column names — NOT `is_virtual` / `join_url`) |
 
 ---
 

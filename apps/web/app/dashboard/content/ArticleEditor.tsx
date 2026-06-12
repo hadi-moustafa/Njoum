@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { createArticle } from '@/app/actions/content';
+import { createArticle, updateArticle } from '@/app/actions/content';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -21,16 +21,25 @@ const LANGUAGES = [
 
 const inputCls = 'border border-njoum-border rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary w-full';
 
-export default function ArticleEditor() {
-  const router = useRouter();
+interface ExistingArticle {
+  id: string; title: string; body: string; module: string; language: string;
+}
+
+interface Props {
+  article?: ExistingArticle;
+}
+
+export default function ArticleEditor({ article }: Props) {
+  const isEdit  = !!article;
+  const router  = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [title,    setTitle]    = useState('');
-  const [module,   setModule]   = useState('safety');
-  const [language, setLanguage] = useState('ar');
+  const [title,    setTitle]    = useState(article?.title    ?? '');
+  const [module,   setModule]   = useState(article?.module   ?? 'safety');
+  const [language, setLanguage] = useState(article?.language ?? 'ar');
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: '<p>اكتبي محتوى المقالة هنا…</p>',
+    content: article?.body ?? '<p>اكتبي محتوى المقالة هنا…</p>',
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none min-h-[200px] p-4 focus:outline-none text-njoum-text',
@@ -44,8 +53,13 @@ export default function ArticleEditor() {
     const body = editor?.getHTML() ?? '';
     startTransition(async () => {
       try {
-        await createArticle({ title, body, module, language, is_published: publish });
-        toast.success(publish ? 'تم النشر ✓' : 'تم الحفظ كمسودة ✓');
+        if (isEdit) {
+          await updateArticle(article.id, { title, body, module, language, is_published: publish });
+          toast.success(publish ? 'تم التحديث والنشر ✓' : 'تم الحفظ ✓');
+        } else {
+          await createArticle({ title, body, module, language, is_published: publish });
+          toast.success(publish ? 'تم النشر ✓' : 'تم الحفظ كمسودة ✓');
+        }
         router.push('/dashboard/content');
       } catch { toast.error('فشل الحفظ'); }
     });
@@ -114,18 +128,24 @@ export default function ArticleEditor() {
       {/* Actions */}
       <div className="flex gap-3 mt-4">
         <button
+          onClick={() => router.push('/dashboard/content')}
+          className="border border-njoum-border text-njoum-muted rounded-xl py-2.5 px-4 text-sm hover:bg-njoum-bg transition"
+        >
+          إلغاء
+        </button>
+        <button
           onClick={() => handleSave(false)}
           disabled={isPending}
           className="flex-1 border border-njoum-border text-njoum-text rounded-xl py-2.5 text-sm font-semibold hover:bg-njoum-bg transition disabled:opacity-50"
         >
-          {isPending ? '…' : 'حفظ كمسودة'}
+          {isPending ? '…' : isEdit ? 'حفظ كمسودة' : 'حفظ كمسودة'}
         </button>
         <button
           onClick={() => handleSave(true)}
           disabled={isPending}
           className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
         >
-          {isPending ? '…' : 'نشر الآن ✓'}
+          {isPending ? '…' : isEdit ? 'تحديث ونشر ✓' : 'نشر الآن ✓'}
         </button>
       </div>
     </div>
